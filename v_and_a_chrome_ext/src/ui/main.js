@@ -39,6 +39,16 @@ const maxHistoryItems = 10;
 window.theHistory = theHistory;
 window.maxHistoryItems = maxHistoryItems;
 
+import { SidePanelComponent } from './components/SidePanelComponent.js';
+import { HistoryComponent } from './components/HistoryComponent.js';
+import { ObjectDisplayComponent } from './components/ObjectDisplayComponent.js';
+import { OverlayComponent } from './components/OverlayComponent.js';
+
+let sidePanelComponent;
+let historyComponent;
+let objectDisplayComponent;
+let overlayComponent;
+
 /**
  * Define variables from global context
  */
@@ -89,6 +99,20 @@ export function initMain() {
   }
 
   initFastclick();
+
+  // Initialize components
+  sidePanelComponent = new SidePanelComponent();
+  sidePanelComponent.init();
+
+  historyComponent = new HistoryComponent();
+  historyComponent.init();
+
+  objectDisplayComponent = new ObjectDisplayComponent();
+  objectDisplayComponent.init();
+
+  overlayComponent = new OverlayComponent();
+  overlayComponent.init();
+
   handleClicks();
 
   // window resize things
@@ -109,18 +133,6 @@ export function initMain() {
  * Handle click events
  */
 function handleClicks() {
-  $sidePanelOpenBtn.click(function(){
-    if ($sidePanel.hasClass('open')) {
-      $sidePanel.removeClass('open');
-    } else {
-      $sidePanel.addClass('open');
-    }
-  });
-
-  $sidePanelCloseBtn.click(function(){
-    $sidePanel.removeClass('open');
-  });
-
   $downArrow.click(function() {
     $('#object-description').velocity('scroll', {
       duration: 700,
@@ -128,20 +140,6 @@ function handleClicks() {
       easing: 'ease-in-out',
       container: $textContent
     });
-  });
-
-  $historyOpenBtn.click(function() {
-    if ($overlay.hasClass('closed')) {
-      $overlay.removeClass('closed').addClass('open for-history');
-      showHistory();
-      $overlay.fadeIn(500);
-    }
-  });
-
-  $overlayCloseBtn.click(function() {
-    $overlay.fadeOut(500, function() {
-      $overlay.removeClass('open for-history for-warning').addClass('closed');
-    });	
   });
 
   $('.go-to-options').click(function() {
@@ -159,58 +157,7 @@ function handleClicks() {
  * Show error overlay
  */
 export function throwError() {
-  $overlay.removeClass('closed').addClass('open for-warning');
-  $overlay.fadeIn(500);
-}
-
-/**
- * Show history overlay
- */
-export function showHistory() {
-  $('.history-wrapper .loading').addClass('loaded');
-  getHistory();
-}
-
-/**
- * Hide history overlay
- */
-export function hideHistory() {
-  $('#history-objects').text('');
-}
-
-/**
- * Get and display history
- */
-function getHistory() {
-  // *** Populate the History page *** //
-  let count = 0;
-  const history = window.theHistory || theHistory || [];
-  
-  if (!history || history.length === 0) {
-    $('#history-objects').html('<p class="no-history">No objects viewed yet. Start exploring the V&A collection!</p>');
-    return;
-  }
-  
-  history.forEach(function (i) {
-    let historyObjectHTML = '';
-    historyObjectHTML += '<a class="history-object hide-until-loaded" data-object-number="'+i.objectNumber+'" href="'+i.vaCollectionsUrl+'"';
-    historyObjectHTML += 'title="View this item in the V&amp;A archive">';
-    historyObjectHTML += '<div class="history-object-image-holder" ';
-    historyObjectHTML += 'style="background-image: url(\''+i.imageUrl+'\');">';
-    historyObjectHTML += '</div>';
-    historyObjectHTML += '<img src="'+i.imageUrl+'" class="image-holder-for-loading" id="image-holder-'+count+'" >';
-    historyObjectHTML += '<div class="history-object-info">';
-    historyObjectHTML += '<p><strong>'+i.title+'</strong>, '+i.date+'</p>';
-    historyObjectHTML += '<p>'+i.artist+'</p>';
-    historyObjectHTML += '</div>';
-    historyObjectHTML += '</a>';
-    $('#history-objects').append(historyObjectHTML);
-    $('#image-holder-'+count).on('load', function() {
-      $(this).parent().addClass('loaded');
-      $(this).remove(); // prevent memory leaks
-    });
-    count++;
-  });
+  overlayComponent.showErrorOverlay();
 }
 
 /**
@@ -247,6 +194,11 @@ const throttledScroll = function() {
 function onResize() { 
   WIDTH = $window.width();
   HEIGHT = $window.height();
+  
+  // Update component heights
+  if (objectDisplayComponent) {
+    objectDisplayComponent.updateHeight(HEIGHT);
+  }
 }
 
 /**
@@ -284,6 +236,4 @@ function initFastclick() {
 // Export to global SITE object for backward compatibility
 window.SITE.initMain = initMain;
 window.SITE.throwError = throwError;
-window.SITE.onThrottledResize = onThrottledResize;
-window.SITE.showHistory = showHistory;
-window.SITE.hideHistory = hideHistory; 
+window.SITE.onThrottledResize = onThrottledResize; 
