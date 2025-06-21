@@ -6,7 +6,7 @@
 // Import all modules
 import { initGlobal } from './core/global.js';
 import { initMain } from './ui/main.js';
-import { start } from './api/va-api.js';
+import { start } from './api/api-integration.js';
 
 // Import helper functions (for global pumkin object)
 import './utils/helpers.js';
@@ -26,7 +26,7 @@ function init() {
   // Initialize main UI functionality
   initMain();
   
-  // Start the V&A API integration
+  // Start the new API integration
   start();
   
   console.log('=== V&A Chrome Extension Initialized ===');

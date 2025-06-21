@@ -44,6 +44,60 @@ export class VandAApi extends MuseumApi {
   }
 
   /**
+   * Make HTTP request using background script to bypass CORS
+   */
+  async makeRequest(url, options = {}) {
+    // Extract parameters from URL for background script
+    const urlObj = new URL(url);
+    const params = {};
+    
+    // Parse URL parameters
+    for (const [key, value] of urlObj.searchParams) {
+      params[key] = value;
+    }
+    
+    // Determine request type based on parameters
+    const systemNumber = params.kw_system_number || null;
+    const searchTerm = params.q || null;
+    const offset = params.page ? (parseInt(params.page) - 1) * parseInt(params.page_size || '1') : null;
+    const limit = params.page_size || '1';
+    const withImages = '1';
+    const withDescription = '1';
+    const hasImage = '1';
+    
+    return new Promise((resolve, reject) => {
+      if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) {
+        console.log("Sending message to background script...");
+        chrome.runtime.sendMessage({
+          action: 'makeVaRequest',
+          params: {
+            systemNumber: systemNumber,
+            searchTerm: searchTerm,
+            offset: offset,
+            limit: limit,
+            withImages: withImages,
+            withDescription: withDescription,
+            hasImage: hasImage
+          }
+        }, function(response) {
+          console.log("Received response from background script:", response);
+          if (response && response.success) {
+            console.log("API request successful");
+            resolve(response.data);
+          } else {
+            console.log("API request failed:", response ? response.error : "No response");
+            reject(new Error(response ? response.error : "No response from background script"));
+          }
+        });
+      } else {
+        // Fallback for standalone testing (won't work due to CORS)
+        console.log("Running as standalone page - API requests will fail due to CORS");
+        reject(new Error("Chrome extension context not available"));
+      }
+    });
+  }
+
+  /**
    * Search for objects in V&A collection
    */
   async searchObjects(searchTerm, options = {}) {
@@ -55,10 +109,8 @@ export class VandAApi extends MuseumApi {
     
     const params = new URLSearchParams({
       q: searchTerm || this.getRandomSearchTerm(),
-      limit: options.limit || '1',
-      with_images: options.withImages || '1',
-      with_description: options.withDescription || '1',
-      has_image: '1'
+      page_size: options.limit || '1',
+      page: '1'
     });
 
     const url = `${this.config.baseUrl}${this.config.searchEndpoint}?${params}`;
@@ -99,7 +151,7 @@ export class VandAApi extends MuseumApi {
       }
 
       // Get the specific object
-      const objectId = randomResults.objects[0].systemNumber;
+      const objectId = randomResults.objects[0].id;
       return await this.getObject(objectId, options);
       
     } catch (error) {
@@ -113,9 +165,9 @@ export class VandAApi extends MuseumApi {
    */
   async getObject(systemNumber, options = {}) {
     const params = new URLSearchParams({
-      system_number: systemNumber,
-      with_images: options.withImages || '1',
-      with_description: options.withDescription || '1'
+      kw_system_number: systemNumber,
+      page_size: '1',
+      page: '1'
     });
 
     const url = `${this.config.baseUrl}${this.config.searchEndpoint}?${params}`;
