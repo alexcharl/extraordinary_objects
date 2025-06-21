@@ -429,12 +429,16 @@ var pumkin = window.pumkin = {};
                 if (items.strictSearch == "strict") {
                     strictSearch = true;
                 }
+                var searchTermsDisplay = theSearchTerms.join(", ");
+                $("#search-terms").text(searchTermsDisplay);
                 chooseSearchTerm();
                 makeVaRequest(null, chosenSearchTerm);
             });
         } else {
             console.log("Running as standalone page, using default search terms: " + defaultSearchTerms);
             theSearchTerms = defaultSearchTerms;
+            var searchTermsDisplay = theSearchTerms.join(", ");
+            $("#search-terms").text(searchTermsDisplay);
             chooseSearchTerm();
             makeVaRequest(null, chosenSearchTerm);
         }

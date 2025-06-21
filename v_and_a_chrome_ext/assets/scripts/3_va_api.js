@@ -47,12 +47,22 @@
 				if (items.strictSearch == "strict") {
 					strictSearch = true;
 				}
+				
+				// Display search terms in the side panel
+				var searchTermsDisplay = theSearchTerms.join(", ");
+				$("#search-terms").text(searchTermsDisplay);
+				
 				chooseSearchTerm();
 				makeVaRequest(null, chosenSearchTerm);
 			});
 		} else {
 			console.log("Running as standalone page, using default search terms: " + defaultSearchTerms);
 			theSearchTerms = defaultSearchTerms;
+			
+			// Display search terms in the side panel
+			var searchTermsDisplay = theSearchTerms.join(", ");
+			$("#search-terms").text(searchTermsDisplay);
+			
 			chooseSearchTerm();
 			makeVaRequest(null, chosenSearchTerm);
 		}
