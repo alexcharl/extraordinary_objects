@@ -1,0 +1,163 @@
+@font-face {
+	font-family:"Untitled Sans Regular";
+	src:url("../../fonts/UntitledSans-Regular.woff") format("woff"),
+		url("../../fonts/UntitledSans-Regular.eot") format("eot"),
+		url("../../fonts/UntitledSans-Regular.ttf") format("truetype");
+	font-weight:normal;
+	font-style:normal;
+}
+
+@font-face {
+	font-family:"Untitled Sans Medium";
+	src:url("../../fonts/UntitledSans-Medium.woff") format("woff"),
+		url("../../fonts/UntitledSans-Medium.eot") format("eot"),
+		url("../../fonts/UntitledSans-Medium.ttf") format("truetype");
+	font-weight:normal;
+	font-style:normal;
+}
+
+// FONT STYLING MIXINS
+// -----------------------------------
+
+// allows use of pixel values for letter spacing
+@mixin letter-spacing ($value) {
+	letter-spacing: ($value / 1000)+em;
+}
+
+@mixin italic {
+	// font-family: 'Chiswick Italic';
+}
+
+@mixin regular {
+	font-family: 'Untitled Sans Regular', Arial, Sans-serif;
+}
+
+@mixin medium {
+	font-family: 'Untitled Sans Medium', 'Arial Bold', Sans-serif;
+}
+
+// ---------------------------------------------------------
+// Function for converting em to px
+// ---------------------------------------------------------
+// See: http://vvv.tobiassjosten.net/css/px-to-em-with-sass/
+// Usage, eg:
+
+	// .title {
+	//     font-size: em(37px);
+	// }
+
+@function em($px, $base: $baseFontSize) {
+    @return ($px / $base) * 1em;
+}
+
+// -------------------------------------------------------
+
+
+
+// Typography
+// //////////
+
+// Set the base font size
+// Used to calcuate ems
+$baseFontSize: 17; // base font size in pixels
+
+@mixin smallText {
+	font-size: $baseFontSize - 3 + px;
+	line-height: $baseFontSize + px;
+}
+
+@mixin largeText {
+	font-size: $baseFontSize + 3 + px;
+	// line-height: 18px;
+}
+
+body {
+	font-size: $baseFontSize + px;
+	line-height: 1.6em;
+	@include regular;	
+	@include letter-spacing(-10);
+}
+
+h1 {
+	@include medium;
+	// @include font-smoothing;
+	font-size: 48px;
+	line-height: 59px;
+	margin-bottom: 0.4em;
+	@include letter-spacing(-20);
+	word-break: break-word;
+	-webkit-hyphens: auto;
+
+	&.reduced {
+		font-size: 40px;
+		line-height: 47px;
+
+		&-more {
+			font-size: 32px;
+			line-height: 39px;
+		}
+	}
+
+	.reg-weight {
+		@include regular;
+	}
+}
+
+h3 {
+	@include medium;
+	font-size: 32px;
+	line-height: 39px;
+	// margin-bottom: 0.6em;
+	@include letter-spacing(-20);
+
+	// &#piece-date {
+	margin-bottom: 1.2em;
+	// }
+
+	&.reduced {
+		font-size: 24px;
+		line-height: 28px;
+	}
+}
+
+h4 {
+	@include medium;
+}
+
+h5 { 
+	margin-bottom: 0.75em;
+
+	&#materials {
+		max-width: 70%;
+		margin-left: auto;
+		margin-right: auto;
+		@include smallText;
+	}
+}
+
+// PARAGRAPH STYLE MIXINS
+// ---------------------------------
+
+p {
+	margin-bottom: 1em;
+
+	a {
+		text-decoration: underline;
+	}
+}
+
+.small, small {
+	font-size: 13px;
+	line-height: 21px;
+}
+
+.knock-out {
+	color: $midGrey;
+}
+
+// CHARACTER STYLE MIXINS
+// ---------------------------------
+
+strong, b {
+	@include medium;		
+}

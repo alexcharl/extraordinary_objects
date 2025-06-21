@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<!--[if IE 6]>
+<html lang="en" data-ie="ie6">
+<![endif]-->
+<!--[if IE 7]>
+<html lang="en" data-ie="ie7">
+<![endif]-->
+<!--[if IE 8]>
+<html lang="en" data-ie="ie8">
+<![endif]-->
+<!--[if IE 9]>
+<html lang="en" data-ie="ie9">
+<![endif]-->
+<!--[if !IE]> -->
+<html lang="en">
+<!--<![endif]-->
+<head>
+<meta charset="UTF-8" content="IE=edge">
+<meta http-equiv="Content-Language" content="en">
+<meta name="google" content="notranslate">
+
+<title>New Tab</title>
+<meta name="description" content="A new object from the V&amp;A archives every time you load the page">
+
+<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale = 1.0, maximum-scale = 1.0, minimal-ui">
+
+<link rel="icon" href="/icons/icon128.png" type="image/x-icon">
+
+<link type='text/css' href='/css/min/main.css?v=0.1' rel='stylesheet' media='all' />
+
+<script src="/jquery/jquery_2.js"></script>
+
+<script src='/js/plugins.js?v=1.0'></script>
+<script src='/js/min/scripts.js?v=0.1'></script>
+
+</head>
+
+<body class="side-panel-closed">
+
+	<div class="wrapper">
+
+		<div class="top-margin grid">
+			<div class="grid__col grid__col--4-of-8">
+				<div class="object-caption-wrapper">
+					<div class="object-caption" id="object-caption"></div>
+				</div>
+			</div>
+			<div class="grid__col grid__col--4-of-8">
+				<div class="utility-icons hide-until-loaded">
+					<a class="icon history" title="Your recent discoveries"></a>
+					<a class="icon more" title="Info and settings"></a>
+				</div>
+			</div>
+		</div><!-- .top-margin -->
+
+		<article class="content-area grid">
+
+			<section class="text-content-column grid__col grid__col--4-of-8">
+
+				<header class="object-header">
+					<div class="object-header-inner hide-until-loaded">
+
+						<h5><span id="creator-name" class="content-placeholder"></span></h5>
+						<h1 class="content-placeholder"><span id="title"></span>, <span id="piece-date" class="reg-weight"></span></h1>
+						
+					</div>
+					<nav class="down-arrow hide-until-loaded"></nav>
+				</header>
+
+				<div class="object-text">
+
+					<section class="text-block" id="object-description">
+						<p></p>
+					</section>
+
+					<div class="text-block" id="object-context">
+						<p></p>
+					</div>
+
+					<section class="text-block" id="object-info">
+
+						<h4>Physical description</h4>
+						<p id="physical-description"></p>
+						<h4>Place of origin</h4>
+						<p id="tech-info-place"></p>
+						<h4>Date</h4>
+						<p id="tech-info-piece-date"></p>
+						<h4>Artist/Maker</h4>
+						<p id="tech-info-creator-name"></p>
+						<p id="dates-alive"></span></p>
+						<h4>Materials and techniques</h4>
+						<p id="tech-info-materials"></p>
+						<h4>Dimensions</h4>
+						<p id="dimensions"></p>
+						<h4>Museum location</h4>
+						<p id="museum-location"></p>
+						<h4>Museum number</h4>
+						<p id="museum-number"></p>
+
+						<p class="object-image-copyright">
+							<small>&copy; Victoria &amp; Albert Museum, London</small>
+						</p>
+					</section>
+
+				</div>
+
+			</section>
+			<figure class="image-content-column grid__col grid__col--4-of-8">
+
+				<div class="loading hide-after-loaded">
+					<div class="dot"></div>
+					<div class="dot"></div>
+					<div class="dot"></div>
+				</div>
+
+				<div class="object-image-wrapper">
+					<div class="object-image">
+						<img src="" id="image" class="image-hide-until-loaded"></img>
+					
+						<div class="share-icons hide-until-hover">
+							<a class="icon pinterest"
+								id="pinterest-button"
+								target="_blank"
+								href="https://www.pinterest.com/pin/create/button/" 
+								data-pin-do="buttonPin" 
+								data-pin-custom="true"
+								title="Pin this object">
+							</a>
+							<a class="icon twitter"
+								id="twitter-button"
+								target="_blank"
+								href="https://twitter.com/intent/tweet"
+								title="Tweet this object">
+							</a>
+							<a class="icon original-link" id="page-link" target="_blank" title="View this item in the V&amp;A archive"></a>
+						</div>
+					</div>
+
+				</div>
+
+			</figure>
+
+		</article>
+
+		<div class="more-info side-panel">
+
+			<a class="close-btn close-side-panel"></a>
+
+			<section class="text-content">
+				<h4>About</h4>
+				<p>Cole is an experiment in search and discovery — made by product designers <a href="https://twitter.com/_____alexc" target="_blank">Alex Charlton</a> and <a href="https://gjover.com" target="_blank">Gala Jover</a>, with the kind support of the <a href="https://twitter.com/V_and_A" target="_blank">V&A museum.</a></p>
+
+				<h4>Get in touch</h4>
+				<p>Send your feedback to <a href="mailto:hello@cole-extension.com">hello@cole-extension.com</a><br>
+				Follow us on <a href="https://twitter.com/cole_extension">Twitter</a><br>
+				Leave a review on the <a href="https://chrome.google.com/webstore/detail/cole/oaalhdkppdbffcjmlmdlmhdlfbingkga">Chrome webstore</a></p>
+
+				<h4>Settings</h4>
+				<p>You're currently searching for:</p>
+				<p class="knock-out" id="search-terms"></p>
+				<p><a class="go-to-options">Change search terms</a></p>
+
+				<div class="object-image-copyright">
+					<strong><small>Images &copy; Victoria &amp; Albert Museum, London</small></strong>
+				</div>
+
+			</section>
+
+		</div><!-- .sliding-container -->
+
+		<article class="overlay closed">
+			<a class="close-btn close-overlay"></a>
+			<div class="history-wrapper">
+				<h4>Recent history</h4>
+				<section class="history-objects-wrapper" id="history-objects"></section>
+			</div>
+			<div class="warning-wrapper">	
+				<h3>Sorry!</h3>
+				<p>We couldn't match any objects to your search terms. Try changing them to something else, delete them all together (to search the whole collection), or turn off 'Strict Search' in the extension settings.</p>
+				<p><a class="go-to-options">Change my search terms</a></p>
+			</div>
+		</article>
+
+	</div><!-- .wrapper -->	
+
+	<div id="mobileTester"></div>
+	<div id="tabletTester"></div>
+	<div id="gutter-tester"></div>
+	
+</body>
+</html>

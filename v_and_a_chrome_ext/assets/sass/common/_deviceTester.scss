@@ -1,0 +1,79 @@
+#mobileTester {
+	display: none;
+	visibility: hidden;
+}
+
+#tabletTester {
+	display: none;
+	visibility: hidden;	
+}
+
+
+//MOBILE
+////////
+@include mobile {
+
+	html.touch {
+		#mobileTester {
+			display: none;
+			visibility: visible;
+		}
+	}
+}
+
+//TABLET
+////////
+@include tablet {
+
+	html.touch {
+		#tabletTester {
+			display: none;
+			visibility: visible;
+		}
+	}
+}
+
+
+// LEGACY WARNING
+// //////////////
+
+#legacy-warning {
+	display: none;
+	width: 600px;
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	margin-top: -40px;
+	margin-left: -300px;
+	font-size: 22px;
+
+	ul {
+		width: 100%;
+		text-align: center;
+	}
+
+	li {
+		display: block;
+		display: inline-block;
+		*zoom:1;
+		margin: 20px 20px;
+
+		a:hover {
+			text-decoration: underline;
+		}
+	}
+}
+
+// ***
+// *** Choose the relevant properties here ***
+// ***
+
+// html.no-canvas { 
+// 	#wrapper > * {
+// 		display: none;
+// 	}
+
+// 	#legacy-warning, #logo-banner {
+// 		display: block;
+// 	}
+// }

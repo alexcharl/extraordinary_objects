@@ -1,0 +1,14 @@
+{
+	"folders":
+	[
+		{
+			"path": "assets/sass"
+		},
+		{
+			"path": "assets/scripts"
+		},
+		{
+			"path": "cole/src"
+		}
+	]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "local_node_setup",
+  "version": "0.0.1",
+  "private": false,
+  "dependencies": {
+    "grunt": "^1.0.4",
+    "grunt-browser-sync": "*",
+    "grunt-contrib-compass": "~1.1.1",
+    "grunt-contrib-uglify": "latest",
+    "grunt-contrib-watch": "latest"
+  },
+  "devDependencies": {
+    "grunt-contrib-compass": "^1.1.1"
+  }
+}

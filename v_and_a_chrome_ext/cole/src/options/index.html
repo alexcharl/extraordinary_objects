@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+
+<head>	
+	<style>
+		body: { padding: 10px; }
+		p: { margin-top:1em; margin-bottom: 1em; }
+		#save { display: block; margin-top: 2em; }
+		#status { color: green; }
+	</style>
+
+	<title>V&amp;A Options</title>
+</head>
+
+<body>
+
+	<p>Each time you open a tab, the extension picks a word at random from the ones below. The word chosen for each search will appear in <strong>bold</strong> in the side panel.</p>
+	<p><label for="searchTerms"><strong>Enter your own search terms below:</strong><br>(separate, with, commas, please).</label></p>
+	<div>
+		<textarea id="searchTerms" rows="5" cols="60"></textarea>
+	</div>
+	<p>By default, an object's title and description is searched for a keyword match. <strong>Check this box to match titles only:</strong></p>
+	<p><input type="checkbox" id="strictSearch" value="strict"> <label for="strictSearch">Use strict search</label></p>
+	<div>
+		
+	</div>
+
+	<p id="status"></p>
+	
+	<p>
+		<button id="save">Save options</button>
+	</p>
+
+	<script src="options.js"></script>
+
+</body>
+</html>

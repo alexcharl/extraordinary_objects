@@ -1,0 +1,210 @@
+// Pumkin Generic Mixins
+// Reusable styles and variables
+
+@mixin inline-block {
+	display:inline-block;
+	vertical-align:top;
+}
+
+@mixin placeholder($color) {
+	&::-webkit-input-placeholder {
+		color: $color;
+	}
+
+	&:-moz-placeholder { /* Firefox 18- */
+	   color: $color;  
+	}
+
+	&::-moz-placeholder {  /* Firefox 19+ */
+	   color: $color;  
+	}
+
+	&:-ms-input-placeholder {  
+	   color: $color; 
+	}
+}
+
+@mixin no-select {
+	// from http://stackoverflow.com/questions/826782/css-rule-to-disable-text-selection-highlighting
+	-moz-user-select: none;
+	-khtml-user-select: none;
+	-webkit-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+
+@mixin css-select ($colour,$background) {
+	::selection {
+		color: $colour;
+		background: $background;
+	}
+
+	::moz-selection {
+		color: $colour;
+		background: $background;
+	}
+}
+
+@mixin font-smoothing {
+	text-rendering:optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+@mixin calc($property, $expression) { 
+  #{$property}: -moz-calc(#{$expression});
+  #{$property}: -o-calc(#{$expression});
+  #{$property}: -webkit-calc(#{$expression}); 
+  #{$property}: calc(#{$expression}); 
+}
+
+@mixin animate($time) {
+	-webkit-transition-duration: $time;
+    -moz-transition-duration: $time;
+    -o-transition-duration: $time;
+    transition-duration: $time;
+}
+
+@mixin delay($time) {
+	-webkit-transition-delay: $time;
+    -moz-transition-delay: $time;
+    -o-transition-delay: $time;
+    transition-delay: $time;
+}
+
+@mixin vertical-centre($offsetTop:50%) {
+	top: $offsetTop;
+	-webkit-transform: translateY(-50%);
+	-moz-transform: translateY(-50%);
+	-ms-transform: translateY(-50%);
+	transform: translateY(-50%);
+}
+
+@mixin horizontal-centre($offsetLeft:50%) {
+	left: $offsetLeft;
+	-webkit-transform: translateX(-50%);
+	-moz-transform: translateX(-50%);
+	-ms-transform: translateX(-50%);
+	transform: translateX(-50%);
+}
+
+@mixin translate-center($type: '', $position: absolute, $offsetLeft:0%, $offsetTop: 0%) {
+  position: $position;
+  
+  @if $type == "horizontal" {
+    @include translateX(-50% + $offsetLeft);
+    left: 50%;
+  }
+  
+  @else if $type == "vertical" {
+    @include translateY(-50% + $offsetTop);
+    top: 50%;
+  }
+  
+  @else {
+    @include translate(-50% + $offsetLeft, -50% + $offsetTop);
+    top: 50%;
+    left: 50%;
+  }
+}
+
+
+@mixin accelerate {
+	// force hardware acceleration to kick in
+   	-webkit-transform: translateZ(0);
+   	-moz-transform: translateZ(0);
+   	-ms-transform: translateZ(0);
+   	-o-transform: translateZ(0);
+   	transform: translateZ(0);
+   	/* Other transform properties here */
+}
+
+@mixin columns($count, $gap, $width:auto) {
+	column-count: $count;
+	column-gap: $gap;
+	column-width: $width;
+	-moz-column-count: $count;
+    -moz-column-gap: $gap;
+    -moz-column-width: $width;
+    -webkit-column-count: $count;
+    -webkit-column-gap: $gap;
+    -webkit-column-width: $width;
+}
+
+@mixin background-colour ( $colour, $opacity: 1 ) {
+	background-color: $colour;
+	background-color: rgba( $colour, $opacity );
+}
+
+@mixin background-colour ( $colour, $opacity: 1 ) {
+	background-color: $colour;
+	background-color: rgba( $colour, $opacity );
+}
+
+.clear {
+	display: block;
+	float: left;
+	clear: both;
+}
+
+.clearfix:after {
+	visibility: hidden;
+	display: block;
+	font-size: 0;
+	content: " ";
+	clear: both;
+	height: 0;
+	}
+* html .clearfix             { zoom: 1; } /* IE6 */
+*:first-child+html .clearfix { zoom: 1; } /* IE7 */
+
+.table {
+	display:table;
+}
+
+.tr {
+	display: table-row;
+}
+
+.td {
+	display: table-cell;
+}
+
+.hidden {
+	@include animate(400ms);
+	opacity:0;
+}
+
+.visible {
+	@include animate(400ms);
+	opacity: 1;
+}
+
+// SCROLLBAR STYLING
+$scrollbarWidth: 0px;
+$scrollbarBackground: $white;
+$scrollbarHandleColour: $lightGrey;
+
+::-webkit-scrollbar,  {
+	width: $scrollbarWidth;
+}
+
+::-webkit-scrollbar-track {
+	-webkit-box-shadow: inset 0 0 0px $scrollbarBackground;
+	-webkit-border-radius: 0px;
+	border-radius: 0px;
+	background: $scrollbarBackground;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+    -webkit-border-radius: 0px;
+    border-radius: 0px;
+	background: $scrollbarHandleColour;
+    -webkit-box-shadow: inset 0 0 0px $scrollbarHandleColour; 
+}
+
+::-webkit-scrollbar-button { }
+::-webkit-scrollbar-track-piece { }
+::-webkit-scrollbar-corner { }
+::-webkit-resizer { }

@@ -1,0 +1,60 @@
+// breakpoints
+$mobileWidth: 650px;
+$minTabletWidth: $mobileWidth + 1;
+$maxTabletWidth: 1279px;
+$tabletWide: 840px;
+
+@mixin mobile {
+  @media screen and (max-device-width: $mobileWidth) {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @media screen and (min-device-width: $minTabletWidth) and (max-device-width: $maxTabletWidth) {
+    @content;
+  }
+}
+
+@mixin tablet-wide {
+  @media screen and (max-width: $tabletWide) {
+    @content;
+  }
+}
+
+
+$break-phone-height: 640px;
+$break-tablet-height: 680px;
+//$break-regular: 1240px;
+$break-small-height: 800px;
+// $break-massive-height: 960px;
+
+@mixin respond-to-width($media) {
+  @if $media == phone {
+    @media only screen and (max-width: $break-phone-width) { @content; }
+  }
+  @else if $media == tablet {
+    @media only screen and (max-width: $break-tablet-width) { @content; }
+  }
+  @else if $media == large-screen {
+    @media only screen and (min-width: $break-large-width) { @content; }
+  }
+  @else if $media == massive-screen {
+    @media only screen and (min-width: $break-massive-width) { @content; }
+  }
+}
+
+@mixin respond-to-height($media) {
+  @if $media == phone {
+    @media only screen and (max-height: $break-phone-height) { @content; }
+  }
+  @else if $media == tablet {
+    @media only screen and (max-height: $break-tablet-height) { @content; }
+  }
+  @else if $media == large-screen {
+    @media only screen and (min-height: $break-large-height) { @content; }
+  }
+  @else if $media == massive-screen {
+    @media only screen and (min-height: $break-massive-height) { @content; }
+  }
+}
