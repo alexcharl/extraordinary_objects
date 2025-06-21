@@ -1,35 +1,24 @@
 const path = require('path');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
 
 module.exports = (env, argv) => {
   const isProduction = argv.mode === 'production';
   
   return {
     entry: {
-      // Main scripts - bundle in the same order as current Grunt setup
+      // Main scripts - using new module structure
       'scripts': [
-        './assets/scripts/0_helpers.js',
-        './assets/scripts/1_global.js', 
-        './assets/scripts/2_main_refactored.js',  // Use refactored main
-        './assets/scripts/museumApi.js',  // Add the new museum API abstraction
-        // Error handling system
-        './assets/scripts/error/ErrorHandler.js',
-        // State management system
-        './assets/scripts/state/AppState.js',
-        './assets/scripts/state/actions.js',
-        './assets/scripts/state/StateConnector.js',
-        // Component system
-        './assets/scripts/components/BaseComponent.js',
-        './assets/scripts/components/ObjectDisplayComponent.js',
-        './assets/scripts/components/HistoryComponent.js',
-        './assets/scripts/components/SidePanelComponent.js',
-        './assets/scripts/components/ComponentManager.js',
-        './assets/scripts/3_va_api_refactored.js',  // Use refactored V&A API
-        './assets/scripts/x_docReady.js'
-      ]
+        './src/main.js'
+      ],
+      // Plugins - separate bundle as in Grunt
+      'plugins': './assets/plugins/index.js',
+      // CSS compilation - temporarily disabled for testing
+      // 'main': './assets/sass/main.scss'
     },
     
     output: {
-      path: path.resolve(__dirname, 'cole/js/max'),
+      path: isProduction ? path.resolve(__dirname, 'cole/js/min') : path.resolve(__dirname, 'cole/js/max'),
       filename: '[name].js',
       clean: false // Don't clean the output directory to preserve other files
     },
@@ -51,19 +40,46 @@ module.exports = (env, argv) => {
               ]
             }
           }
+        },
+        {
+          test: /\.scss$/,
+          use: [
+            MiniCssExtractPlugin.loader,
+            'css-loader',
+            'sass-loader'
+          ]
         }
       ]
     },
     
+    plugins: [
+      new MiniCssExtractPlugin({
+        filename: isProduction ? '../css/min/[name].css' : '../css/max/[name].css'
+      })
+    ],
+    
     optimization: {
-      minimize: false, // Keep readable for development
+      minimize: isProduction, // Minify in production mode
+      minimizer: isProduction ? [
+        new TerserPlugin({
+          terserOptions: {
+            compress: {
+              // drop_console: false // Keep console.log for debugging
+            },
+            mangle: true,
+            format: {
+              beautify: false
+            }
+          }
+        })
+      ] : [],
       concatenateModules: true
     },
     
     devtool: isProduction ? false : 'source-map',
     
     resolve: {
-      extensions: ['.js']
+      extensions: ['.js', '.scss']
     },
     
     watch: !isProduction,
