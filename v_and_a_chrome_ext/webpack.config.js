@@ -9,9 +9,15 @@ module.exports = (env, argv) => {
       'scripts': [
         './assets/scripts/0_helpers.js',
         './assets/scripts/1_global.js', 
-        './assets/scripts/2_main.js',
+        './assets/scripts/2_main_refactored.js',  // Use refactored main
         './assets/scripts/museumApi.js',  // Add the new museum API abstraction
-        './assets/scripts/3_va_api.js',
+        // Component system
+        './assets/scripts/components/BaseComponent.js',
+        './assets/scripts/components/ObjectDisplayComponent.js',
+        './assets/scripts/components/HistoryComponent.js',
+        './assets/scripts/components/SidePanelComponent.js',
+        './assets/scripts/components/ComponentManager.js',
+        './assets/scripts/3_va_api_refactored.js',  // Use refactored V&A API
         './assets/scripts/x_docReady.js'
       ]
     },
