@@ -7,18 +7,14 @@ module.exports = (env, argv) => {
   
   return {
     entry: {
-      // Main scripts - bundle in the same order as current Grunt setup
+      // Main scripts - using new module structure
       'scripts': [
-        './assets/scripts/0_helpers.js',
-        './assets/scripts/1_global.js', 
-        './assets/scripts/2_main.js',
-        './assets/scripts/3_va_api.js',
-        './assets/scripts/x_docReady.js'
+        './src/main.js'
       ],
       // Plugins - separate bundle as in Grunt
       'plugins': './assets/plugins/index.js',
-      // CSS compilation
-      'main': './assets/sass/main.scss'
+      // CSS compilation - temporarily disabled for testing
+      // 'main': './assets/sass/main.scss'
     },
     
     output: {
