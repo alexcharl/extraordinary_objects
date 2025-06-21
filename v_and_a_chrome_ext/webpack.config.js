@@ -10,6 +10,7 @@ module.exports = (env, argv) => {
         './assets/scripts/0_helpers.js',
         './assets/scripts/1_global.js', 
         './assets/scripts/2_main.js',
+        './assets/scripts/museumApi.js',  // Add the new museum API abstraction
         './assets/scripts/3_va_api.js',
         './assets/scripts/x_docReady.js'
       ]

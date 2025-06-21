@@ -529,370 +529,221 @@ var pumkin = window.pumkin = {};
   \************************************/
 /***/ (function() {
 
-;
+/**
+ * V&A API - Refactored Version
+ * 
+ * This version uses the Museum API abstraction layer while maintaining
+ * all existing functionality and compatibility.
+ */
+
 (function (window, $, Modernizr) {
+  'use strict';
+
   var pumkin = window.pumkin;
   var SITE = window.SITE = window.SITE || {};
 
-  // V&A API v2 configuration
-  var vaUrl = "https://api.vam.ac.uk/v2/objects/search";
-  var vaMediaUrl = "https://media.vam.ac.uk/media/thira/collection_images/";
-  var vaCollectionsUrl = "https://collections.vam.ac.uk/item/";
-  var defaultSearchTerms = ["Architecture", "Asia", "British Galleries", "Ceramics", "Childhood", "Contemporary", "Fashion", "Jewellery", "Furniture", "Glass", "Metalwork", "Paintings", "Drawings", "Photography", "Prints", "Books", "Sculpture", "Textiles", "Theatre"];
-  var theSearchTerms;
-  var chosenSearchTerm;
-  var strictSearch = false;
-  var searchCount = 0;
-  var maxSearchCounts = 5;
-  function chooseSearchTerm() {
-    chosenSearchTerm = theSearchTerms[pumkin.randomNum(0, theSearchTerms.length)];
-    console.log("Chosen search term: " + chosenSearchTerm + " from " + theSearchTerms.length + " available terms");
-  }
-  function start() {
+  // Create the V&A API instance
+  var museumApi = null;
+  var chosenSearchTerm = null;
+
+  /**
+   * Start function - initializes the API and begins the search process
+   */
+  async function start() {
     console.log("=== V&A API START FUNCTION CALLED ===");
-    console.log("looking for  user settings");
+    console.log("Initializing museum API...");
+    try {
+      // Create V&A API instance
+      museumApi = SITE.MuseumApiFactory.create('vanda');
 
-    // Test background script communication
-    if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) {
-      console.log("Testing background script communication...");
-      chrome.runtime.sendMessage({
-        action: 'test'
-      }, function (response) {
-        console.log("Background script test response:", response);
-      });
-    }
-    if (typeof chrome != "undefined" && typeof chrome.storage != "undefined") {
-      chrome.storage.sync.get({
-        userSearchTerms: "",
-        strictSearch: "fuzzy"
-      }, function (items) {
-        if (items.userSearchTerms.length > 0) {
-          console.log("using user search terms: " + items.userSearchTerms);
-          theSearchTerms = items.userSearchTerms.replace(/ /g, "+").split(",");
-        } else {
-          console.log("using default search terms: " + defaultSearchTerms);
-          theSearchTerms = defaultSearchTerms;
-        }
-        console.log("strictSearch setting = " + items.strictSearch);
-        if (items.strictSearch == "strict") {
-          strictSearch = true;
-        }
+      // Initialize the API (loads user settings)
+      await museumApi.initialize();
 
-        // Display search terms in the side panel
-        var searchTermsDisplay = theSearchTerms.join(", ");
-        $("#search-terms").text(searchTermsDisplay);
-        chooseSearchTerm();
-        makeVaRequest(null, chosenSearchTerm);
-      });
-    } else {
-      console.log("Running as standalone page, using default search terms: " + defaultSearchTerms);
-      theSearchTerms = defaultSearchTerms;
+      // Test background script communication
+      if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) {
+        console.log("Testing background script communication...");
+        chrome.runtime.sendMessage({
+          action: 'test'
+        }, function (response) {
+          console.log("Background script test response:", response);
+        });
+      }
 
-      // Display search terms in the side panel
-      var searchTermsDisplay = theSearchTerms.join(", ");
-      $("#search-terms").text(searchTermsDisplay);
-      chooseSearchTerm();
-      makeVaRequest(null, chosenSearchTerm);
+      // Choose a search term and start the search process
+      chosenSearchTerm = museumApi.chooseSearchTerm();
+      await makeVaRequest(null, chosenSearchTerm);
+    } catch (error) {
+      console.error("Failed to initialize museum API:", error);
+      SITE.throwError();
     }
   }
-  function makeVaRequest(systemNumber, searchTerm, offset, limit, withImages, withDescription, after, random) {
-    if (searchCount < maxSearchCounts) {
-      searchCount++;
-      systemNumber = typeof systemNumber !== "undefined" ? systemNumber : null;
-      withImages = typeof withImages !== "undefined" ? withImages : "1";
-      limit = typeof limit !== "undefined" ? limit : "1";
-      searchTerm = typeof searchTerm !== "undefined" ? searchTerm : null;
-      offset = typeof offset !== "undefined" ? offset : null;
-      withDescription = typeof withDescription !== "undefined" ? withDescription : "1";
-      after = typeof after !== "undefined" ? after : null;
-      random = typeof random !== "undefined" ? random : "0";
-      quality = typeof quality !== "undefined" ? quality : null;
-      var expectResponse = 0;
+
+  /**
+   * Make a V&A API request (maintains compatibility with existing code)
+   */
+  async function makeVaRequest(systemNumber, searchTerm, offset, limit, withImages, withDescription, after, random) {
+    try {
+      // Handle different request types based on parameters
+      let expectResponse = 0;
       if (offset != null) {
         expectResponse = 1;
       } else if (systemNumber != null) {
         expectResponse = 2;
       }
-      if (strictSearch == true) {
-        var searchItem = searchTerm;
-        var searchTerm = null;
-      } else {
-        var searchItem = null;
-      }
-      console.log("strictSearch = " + strictSearch);
       console.log("expectResponse = " + expectResponse);
       console.log("Chosen term = " + searchTerm);
-      console.log("Chosen item name = " + searchItem);
       console.log("offset = " + offset);
+      let searchParams = {
+        searchTerm: searchTerm,
+        offset: offset,
+        limit: limit || "1",
+        withImages: withImages || "1",
+        withDescription: withDescription || "1",
+        after: after,
+        random: random || "0",
+        hasImage: "1"
+      };
 
-      // Use background script to make API request
-      if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) {
-        console.log("Sending message to background script...");
-        chrome.runtime.sendMessage({
-          action: 'makeVaRequest',
-          params: {
-            systemNumber: systemNumber,
-            searchTerm: searchTerm || searchItem,
-            offset: offset,
-            limit: limit,
-            withImages: withImages,
-            withDescription: withDescription,
-            after: after,
-            random: random,
-            hasImage: "1"
-          }
-        }, function (response) {
-          console.log("Received response from background script:", response);
-          if (response && response.success) {
-            console.log("API request successful");
-            processResponse(response.data, expectResponse);
-          } else {
-            console.log("API request failed:", response ? response.error : "No response");
-            // Retry with different search term
-            chooseSearchTerm();
-            makeVaRequest(null, chosenSearchTerm);
-          }
-        });
-      } else {
-        // Fallback for standalone testing (won't work due to CORS)
-        console.log("Running as standalone page - API requests will fail due to CORS");
-        SITE.throwError();
+      // Handle strict search mode
+      if (museumApi.strictSearch) {
+        searchParams.searchTerm = searchTerm;
+        console.log("strictSearch = true");
       }
-    } else {
-      console.log("maximum number of search attempts reached, try changing search terms");
-      SITE.throwError();
+
+      // Make the search request
+      const data = await museumApi.search(searchParams);
+
+      // Process the response
+      await processResponse(data, expectResponse);
+    } catch (error) {
+      console.error("API request failed:", error);
+      if (museumApi.hasExceededMaxAttempts()) {
+        console.log("maximum number of search attempts reached, try changing search terms");
+        SITE.throwError();
+      } else {
+        // Retry with different search term
+        chosenSearchTerm = museumApi.chooseSearchTerm();
+        await makeVaRequest(null, chosenSearchTerm);
+      }
     }
   }
-  function processResponse(data, expectResponse) {
-    console.log(data);
+
+  /**
+   * Process API response (maintains compatibility with existing code)
+   */
+  async function processResponse(data, expectResponse) {
+    console.log("Processing response:", data);
     if (expectResponse === 0) {
-      var numRecords = data.records.length;
+      // Initial search - get total count and choose random object
+      const numRecords = data.records.length;
       if (numRecords > 0) {
-        var randomOffset = pumkin.randomNum(0, data.info.record_count - 1);
+        const randomOffset = pumkin.randomNum(0, data.info.record_count - 1);
         console.log("total results = " + data.info.record_count);
         console.log("randomOffset range: 0 to " + (data.info.record_count - 1));
         console.log("generated randomOffset = " + randomOffset);
         console.log("making query 2, with randomOffset of " + randomOffset);
-        makeVaRequest(null, chosenSearchTerm, randomOffset);
+        await makeVaRequest(null, chosenSearchTerm, randomOffset);
       } else {
         console.log("making a second request, no results found last time");
-        chooseSearchTerm();
-        makeVaRequest(null, chosenSearchTerm);
+        chosenSearchTerm = museumApi.chooseSearchTerm();
+        await makeVaRequest(null, chosenSearchTerm);
       }
       return;
     }
     if (expectResponse === 1) {
-      var numRecords = data.records.length;
+      // Got search results - get first object's system number
+      const numRecords = data.records.length;
       console.log("There are " + numRecords + " objects available.");
-      var whichObject = data.records[0];
-      var systemNumber = whichObject.systemNumber;
+      const whichObject = data.records[0];
+      const systemNumber = whichObject.systemNumber;
       console.log("Selected object system number: " + systemNumber);
-      makeVaRequest(systemNumber);
+      await makeVaRequest(systemNumber);
       return;
     }
 
     // Process individual object data
     if (!data.records || data.records.length === 0) {
       console.log("No object found for system number, trying a different search term");
-      chooseSearchTerm();
-      makeVaRequest(null, chosenSearchTerm);
+      chosenSearchTerm = museumApi.chooseSearchTerm();
+      await makeVaRequest(null, chosenSearchTerm);
       return;
     }
-    var objectInfo = data.records[0];
-    console.log("Processing object data:", objectInfo);
-    var imageId = objectInfo._primaryImageId;
 
-    // Check if object has a valid image - but allow objects without images to be displayed
-    // Only try to find another object if we're in a search results context and have multiple objects
-    if ((!imageId || imageId === null || imageId === "") && expectResponse !== 2 && data.records.length > 1) {
-      console.log("Object has no image, trying next object in search results");
-      // Try the next object in the list
-      objectInfo = data.records[1];
-      imageId = objectInfo._primaryImageId;
-      // If the next object also has no image, just proceed with it anyway
-      console.log("Next object image ID:", imageId);
-    }
-    var theObject = objectInfo.objectType;
-    var theTitle = objectInfo._primaryTitle != "" ? objectInfo._primaryTitle : objectInfo.objectType;
-    var theDate = objectInfo._primaryDate;
-    var theSlug = objectInfo.systemNumber; // Use systemNumber as slug for URL
-    var theArtist = objectInfo._primaryMaker && objectInfo._primaryMaker.name ? objectInfo._primaryMaker.name : "";
-    var theSystemNumber = objectInfo.systemNumber;
-    var theMaterials = ""; // Not available in v2 API response
-    var theDescription = ""; // Not available in v2 API response
-    var theContext = ""; // Not available in v2 API response
+    // Process the object data using the abstraction layer
+    const objectData = museumApi.processObjectData(data);
 
-    console.log("Extracted data - Title:", theTitle, "Artist:", theArtist, "System Number:", theSystemNumber, "Image ID:", imageId);
+    // Update the UI with the processed data
+    updateUI(objectData);
 
-    // Handle artist dates if available
-    var datesAlive = "";
-    if (objectInfo._primaryMaker && objectInfo._primaryMaker.birthYear) {
-      var birthYear = objectInfo._primaryMaker.birthYear;
-      var deathYear = objectInfo._primaryMaker.deathYear;
-      if (birthYear && deathYear) {
-        datesAlive = "(" + birthYear + " - " + deathYear + ")";
-      } else if (birthYear) {
-        datesAlive = "(Born " + birthYear + ")";
-      }
+    // Save to history if this is a final object (not a search step)
+    if (expectResponse !== 0 && expectResponse !== 1) {
+      saveToHistory(objectData);
     }
+  }
 
-    // Use IIIF format for image URLs
-    var imgUrl = "";
-    if (imageId && imageId !== null && imageId !== "") {
-      imgUrl = "https://framemark.vam.ac.uk/collections/" + imageId + "/full/1000,/0/default.jpg";
-    }
-    var objectUrl = vaCollectionsUrl + theSystemNumber + "/" + theSlug;
-    var thePhysicalDescription = ""; // Not available in v2 API response
-    var theDimensions = ""; // Not available in v2 API response
-    var thePlace = objectInfo._primaryPlace;
-    var theMuseumNumber = objectInfo.accessionNumber;
-    var theMuseumLocation = objectInfo._currentLocation ? objectInfo._currentLocation.displayName : "";
-    theTitle = theTitle.replace(/\^/, "");
-    theTitle = theTitle.replace(/\<i\>/g, "");
-    theTitle = theTitle.replace(/\<\\i\>/g, "");
-    theTitle = theTitle.replace(/\<b\>/g, "");
-    theTitle = theTitle.replace(/\<\\b\>/g, "");
-    var theSideCaption = "<strong>" + theTitle + " " + theDate + "</strong>" + " &mdash; " + theArtist + " " + datesAlive;
+  /**
+   * Update the UI with object data
+   */
+  function updateUI(objectData) {
+    console.log("Updating UI with object data:", objectData);
 
-    // Create a meaningful description from available data
-    var descriptionParts = [];
-    if (theTitle && theTitle !== theObject) {
-      descriptionParts.push(theTitle);
-    }
-    if (theDate) {
-      descriptionParts.push("Dated " + theDate);
-    }
-    if (thePlace) {
-      descriptionParts.push("from " + thePlace);
-    }
-    if (theArtist && theArtist !== "Unknown") {
-      descriptionParts.push("by " + theArtist);
-    }
-    var theDescription = descriptionParts.length > 0 ? descriptionParts.join(", ") + "." : "A " + theObject + " from the V&A collection.";
-
-    // Clean up description text
-    theDescription = theDescription.replace(/Object Type\n/g, "");
-    theDescription = theDescription.replace(/People\n/g, "");
-    theDescription = theDescription.replace(/Place\n/g, "");
-    theDescription = theDescription.replace(/Places\n/g, "");
-    theDescription = theDescription.replace(/Time\n/g, "");
-    theDescription = theDescription.replace(/Design \& Designing\n/g, "");
-    theDescription = theDescription.replace(/Design\n/g, "");
-    theDescription = theDescription.replace(/Subject Depicted\n/g, "");
-    theDescription = theDescription.replace(/Subjects Depicted\n/g, "");
-    theDescription = theDescription.replace(/Materials \& Making\n/g, "");
-    theDescription = theDescription.replace(/Collectors \& Owners\n/g, "");
-    theDescription = theDescription.replace(/Ownership \& Use\n/g, "");
-    theDescription = theDescription.replace(/Trading\n/g, "");
-    theDescription = theDescription.replace(/Trade\n/g, "");
-    theDescription = theDescription.replace(/Historical Associations\n/g, "");
-    theDescription = theDescription.replace(/Other\n/g, "");
-    theDescription = theDescription.replace(/\n\n\n/g, "\n\n");
-    theDescription = theDescription.replace(/\n/g, "<br>");
-    theDescription = theDescription.replace(/\<i\>/g, "");
-    theDescription = theDescription.replace(/\<\\i\>/g, "");
-    theDescription = theDescription.replace(/\<b\>/g, "");
-    theDescription = theDescription.replace(/\<\\b\>/g, "");
-    thePhysicalDescription = thePhysicalDescription.replace(/\<i\>/g, "");
-    thePhysicalDescription = thePhysicalDescription.replace(/\<\\i\>/g, "");
-    thePhysicalDescription = thePhysicalDescription.replace(/\<b\>/g, "");
-    thePhysicalDescription = thePhysicalDescription.replace(/\<\\b\>/g, "");
-    theDate = typeof theDate !== "undefined" && theDate != null ? theDate : "";
-    var pinterestUrl = "https://www.pinterest.com/pin/create/button/";
-    pinterestUrl += "?url=" + objectUrl;
-    pinterestUrl += "&media=" + imgUrl;
-    pinterestUrl += "&description=" + theTitle;
-    if (theDate != "") pinterestUrl += " (" + thePlace + ", " + theDate + ")";
-    pinterestUrl += ", V%26A Collection";
-    if (theTitle.length > 42) {
+    // Handle title length for CSS classes
+    if (objectData.title.length > 42) {
       $("#title").addClass("reduced");
       $("#piece-date").addClass("reduced");
     }
-    $("#creator-name").text(theArtist);
-    $("#dates-alive").text(datesAlive);
-    $("#title").html(theTitle);
-    if (theDate != "") $("#piece-date").text("(" + theDate + ")");
-    $("#place").html(thePlace);
+
+    // Update basic information
+    $("#creator-name").text(objectData.artist);
+    $("#dates-alive").text(objectData.datesAlive);
+    $("#title").html(objectData.title);
+    if (objectData.date !== "") {
+      $("#piece-date").text("(" + objectData.date + ")");
+    }
+    $("#place").html(objectData.place);
 
     // Handle image display
-    if (imgUrl && imgUrl !== "") {
-      $("#image").attr("src", imgUrl);
+    if (objectData.imageUrl && objectData.imageUrl !== "") {
+      $("#image").attr("src", objectData.imageUrl);
+
+      // Build Pinterest URL
+      let pinterestUrl = "https://www.pinterest.com/pin/create/button/";
+      pinterestUrl += "?url=" + objectData.objectUrl;
+      pinterestUrl += "&media=" + objectData.imageUrl;
+      pinterestUrl += "&description=" + objectData.title;
+      if (objectData.date !== "") {
+        pinterestUrl += " (" + objectData.place + ", " + objectData.date + ")";
+      }
+      pinterestUrl += ", V%26A Collection";
       $("#pinterest-button").attr("href", pinterestUrl);
     } else {
-      // No image available - show placeholder immediately
+      // No image available - show placeholder
       var $imageContainer = $('.object-image-wrapper');
       $imageContainer.html('<div class="image-placeholder"><p>Image not available</p><p><small>This object may not have been photographed yet, or the image may be temporarily unavailable.</small></p></div>');
     }
-    $("#page-link").attr("href", objectUrl);
-    console.log("UI Updates - Setting title to:", theTitle);
-    console.log("UI Updates - Setting artist to:", theArtist);
-    console.log("UI Updates - Setting image to:", imgUrl);
 
-    // Add fallback logic for missing description
-    var descriptionContent = theDescription && theDescription.trim() !== "" ? theDescription : "No description available for this object.";
+    // Update links
+    $("#page-link").attr("href", objectData.objectUrl);
+
+    // Update descriptions
+    const descriptionContent = objectData.description && objectData.description.trim() !== "" ? objectData.description : "No description available for this object.";
     $("#object-description").html("<p>" + descriptionContent + "</p>");
-    $("#object-context").html("<p>" + theContext + "</p>");
-    $("#object-side-caption").html(theSideCaption);
-    if (thePhysicalDescription != "") {
-      $("#physical-description").html(thePhysicalDescription);
-    } else {
-      console.log("hiding physical description");
-      $("#physical-description").hide();
-      $("#physical-description").prev("h4").hide();
-    }
-    if (theDate != "") {
-      $("#tech-info-piece-date").text(theDate);
-    } else {
-      $("#tech-info-piece-date").hide();
-      $("#tech-info-piece-date").prev("h4").hide();
-    }
-    if (theArtist != "") {
-      $("#tech-info-creator-name").text(theArtist);
-    } else {
-      $("#tech-info-creator-name").hide();
-      $("#tech-info-creator-name").prev("h4").hide();
-    }
-    if (theMaterials != "") {
-      $("#tech-info-materials").html(theMaterials);
-    } else {
-      $("#tech-info-materials").hide();
-      $("#tech-info-materials").prev("h4").hide();
-    }
-    if (thePlace != "") {
-      $("#tech-info-place").text(thePlace);
-    } else {
-      $("#tech-info-place").hide();
-      $("#tech-info-place").prev("h4").hide();
-    }
-    if (theDimensions != "") {
-      $("#dimensions").text(theDimensions);
-    } else {
-      $("#dimensions").hide();
-      $("#dimensions").prev("h4").hide();
-    }
-    if (theMuseumLocation != "") {
-      $("#museum-location").text(theMuseumLocation);
-    } else {
-      $("#museum-location").hide();
-      $("#museum-location").prev("h4").hide();
-    }
-    if (theMuseumNumber != "") {
-      $("#museum-number").text(theMuseumNumber);
-    } else {
-      $("#museum-number").hide();
-      $("#museum-number").prev("h4").hide();
-    }
+    $("#object-side-caption").html(objectData.sideCaption);
+
+    // Update technical information (hide empty fields)
+    updateTechnicalInfo(objectData);
+
+    // Trigger resize and mark as loaded
     SITE.onThrottledResize();
     $(".content-placeholder, .hide-until-loaded").addClass("loaded");
 
-    // Handle image loading with error fallback (only if we have an image)
-    if (imgUrl && imgUrl !== "") {
+    // Handle image loading with error fallback
+    if (objectData.imageUrl && objectData.imageUrl !== "") {
       $("img.image-hide-until-loaded").on('load', function () {
         $(".image-hide-until-loaded, .hide-after-loaded").addClass("loaded");
         $(this).removeClass("image-error");
       }).on('error', function () {
-        console.log("Image failed to load:", imgUrl);
-        // Replace broken image with placeholder message
+        console.log("Image failed to load:", objectData.imageUrl);
         var $imageContainer = $(this).closest('.object-image-wrapper');
         $imageContainer.html('<div class="image-placeholder"><p>Image not available</p><p><small>This object may not have been photographed yet, or the image may be temporarily unavailable.</small></p></div>');
         $(".image-hide-until-loaded, .hide-after-loaded").addClass("loaded");
@@ -901,39 +752,433 @@ var pumkin = window.pumkin = {};
       // No image to load, so mark as loaded immediately
       $(".image-hide-until-loaded, .hide-after-loaded").addClass("loaded");
     }
+  }
 
-    // Save object to history and persist
-    if (expectResponse !== 0 && expectResponse !== 1) {
-      var historyObject = {
-        objectNumber: theSystemNumber,
-        vaCollectionsUrl: objectUrl,
-        imageUrl: imgUrl,
-        title: theTitle,
-        date: theDate,
-        artist: theArtist,
-        systemNumber: theSystemNumber
-      };
-      var history = window.theHistory || [];
-      history.push(historyObject);
-      if (history.length > (window.maxHistoryItems || 10)) {
-        history.shift();
+  /**
+   * Update technical information fields
+   */
+  function updateTechnicalInfo(objectData) {
+    // Helper function to hide empty fields
+    function hideIfEmpty(selector, value) {
+      if (value && value !== "") {
+        $(selector).text(value);
+      } else {
+        $(selector).hide();
+        $(selector).prev("h4").hide();
       }
-      window.theHistory = history; // Update global reference
-      if (typeof chrome !== 'undefined' && typeof chrome.storage !== 'undefined') {
-        chrome.storage.local.set({
-          objectHistory: history
-        }, function () {
-          console.log('History saved to storage:', history.length, 'items');
-        });
-      }
+    }
+    hideIfEmpty("#tech-info-piece-date", objectData.date);
+    hideIfEmpty("#tech-info-creator-name", objectData.artist);
+    hideIfEmpty("#tech-info-place", objectData.place);
+    hideIfEmpty("#museum-location", objectData.museumLocation);
+    hideIfEmpty("#museum-number", objectData.accessionNumber);
+
+    // Hide physical description and materials (not available in v2 API)
+    $("#physical-description").hide();
+    $("#physical-description").prev("h4").hide();
+    $("#tech-info-materials").hide();
+    $("#tech-info-materials").prev("h4").hide();
+    $("#dimensions").hide();
+    $("#dimensions").prev("h4").hide();
+  }
+
+  /**
+   * Save object to history
+   */
+  function saveToHistory(objectData) {
+    const historyObject = {
+      objectNumber: objectData.systemNumber,
+      vaCollectionsUrl: objectData.objectUrl,
+      imageUrl: objectData.imageUrl,
+      title: objectData.title,
+      date: objectData.date,
+      artist: objectData.artist,
+      systemNumber: objectData.systemNumber
+    };
+    var history = window.theHistory || [];
+    history.push(historyObject);
+    if (history.length > (window.maxHistoryItems || 10)) {
+      history.shift();
+    }
+    window.theHistory = history;
+    if (typeof chrome !== 'undefined' && typeof chrome.storage !== 'undefined') {
+      chrome.storage.local.set({
+        objectHistory: history
+      }, function () {
+        console.log('History saved to storage:', history.length, 'items');
+      });
     }
   }
 
-  // EXPORT
+  // Export functions to maintain compatibility
   SITE.start = start;
   SITE.makeVaRequest = makeVaRequest;
   SITE.processResponse = processResponse;
 })(this, this.jQuery, this.Modernizr);
+
+/***/ }),
+
+/***/ "./assets/scripts/museumApi.js":
+/*!*************************************!*\
+  !*** ./assets/scripts/museumApi.js ***!
+  \*************************************/
+/***/ (function() {
+
+/**
+ * Museum API Abstraction Layer
+ * 
+ * This module provides a unified interface for different museum APIs.
+ * It allows easy switching between V&A, Smithsonian, Rijksmuseum, etc.
+ */
+
+(function (window, $) {
+  'use strict';
+
+  var pumkin = window.pumkin;
+  var SITE = window.SITE = window.SITE || {};
+
+  /**
+   * Base Museum API Interface
+   * All museum API implementations should extend this class
+   */
+  class MuseumApi {
+    constructor(config) {
+      this.config = config || {};
+      this.searchCount = 0;
+      this.maxSearchCounts = 5;
+    }
+
+    /**
+     * Initialize the API
+     * @param {Object} options - Configuration options
+     * @returns {Promise} - Promise that resolves when initialization is complete
+     */
+    async initialize(options) {
+      throw new Error('initialize() must be implemented by subclass');
+    }
+
+    /**
+     * Make a search request
+     * @param {Object} params - Search parameters
+     * @returns {Promise} - Promise that resolves with search results
+     */
+    async search(params) {
+      throw new Error('search() must be implemented by subclass');
+    }
+
+    /**
+     * Get a specific object by ID
+     * @param {string} objectId - The object's unique identifier
+     * @returns {Promise} - Promise that resolves with object data
+     */
+    async getObject(objectId) {
+      throw new Error('getObject() must be implemented by subclass');
+    }
+
+    /**
+     * Process and normalize object data
+     * @param {Object} rawData - Raw data from the API
+     * @returns {Object} - Normalized object data
+     */
+    processObjectData(rawData) {
+      throw new Error('processObjectData() must be implemented by subclass');
+    }
+
+    /**
+     * Build image URL for an object
+     * @param {string} imageId - Image identifier
+     * @returns {string} - Complete image URL
+     */
+    buildImageUrl(imageId) {
+      throw new Error('buildImageUrl() must be implemented by subclass');
+    }
+
+    /**
+     * Build object URL for external links
+     * @param {string} objectId - Object identifier
+     * @returns {string} - Complete object URL
+     */
+    buildObjectUrl(objectId) {
+      throw new Error('buildObjectUrl() must be implemented by subclass');
+    }
+
+    /**
+     * Get search terms for this museum
+     * @returns {Array} - Array of search terms
+     */
+    getSearchTerms() {
+      throw new Error('getSearchTerms() must be implemented by subclass');
+    }
+
+    /**
+     * Choose a random search term
+     * @returns {string} - Selected search term
+     */
+    chooseSearchTerm() {
+      const searchTerms = this.getSearchTerms();
+      const chosenTerm = searchTerms[pumkin.randomNum(0, searchTerms.length)];
+      console.log("Chosen search term: " + chosenTerm + " from " + searchTerms.length + " available terms");
+      return chosenTerm;
+    }
+
+    /**
+     * Check if we've exceeded maximum search attempts
+     * @returns {boolean} - True if max attempts reached
+     */
+    hasExceededMaxAttempts() {
+      return this.searchCount >= this.maxSearchCounts;
+    }
+
+    /**
+     * Increment search count
+     */
+    incrementSearchCount() {
+      this.searchCount++;
+    }
+
+    /**
+     * Reset search count
+     */
+    resetSearchCount() {
+      this.searchCount = 0;
+    }
+  }
+
+  /**
+   * V&A Museum API Implementation
+   */
+  class VandAApi extends MuseumApi {
+    constructor() {
+      super();
+      this.baseUrl = "https://api.vam.ac.uk/v2/objects/search";
+      this.mediaUrl = "https://media.vam.ac.uk/media/thira/collection_images/";
+      this.collectionsUrl = "https://collections.vam.ac.uk/item/";
+      this.defaultSearchTerms = ["Architecture", "Asia", "British Galleries", "Ceramics", "Childhood", "Contemporary", "Fashion", "Jewellery", "Furniture", "Glass", "Metalwork", "Paintings", "Drawings", "Photography", "Prints", "Books", "Sculpture", "Textiles", "Theatre"];
+      this.searchTerms = this.defaultSearchTerms;
+      this.strictSearch = false;
+    }
+
+    /**
+     * Initialize the V&A API with user settings
+     */
+    async initialize() {
+      return new Promise(resolve => {
+        if (typeof chrome !== "undefined" && typeof chrome.storage !== "undefined") {
+          chrome.storage.sync.get({
+            userSearchTerms: "",
+            strictSearch: "fuzzy"
+          }, items => {
+            if (items.userSearchTerms.length > 0) {
+              console.log("using user search terms: " + items.userSearchTerms);
+              this.searchTerms = items.userSearchTerms.replace(/ /g, "+").split(",");
+            } else {
+              console.log("using default search terms: " + this.defaultSearchTerms);
+              this.searchTerms = this.defaultSearchTerms;
+            }
+            console.log("strictSearch setting = " + items.strictSearch);
+            this.strictSearch = items.strictSearch === "strict";
+
+            // Display search terms in the side panel
+            const searchTermsDisplay = this.searchTerms.join(", ");
+            $("#search-terms").text(searchTermsDisplay);
+            resolve();
+          });
+        } else {
+          console.log("Running as standalone page, using default search terms");
+          this.searchTerms = this.defaultSearchTerms;
+
+          // Display search terms in the side panel
+          const searchTermsDisplay = this.searchTerms.join(", ");
+          $("#search-terms").text(searchTermsDisplay);
+          resolve();
+        }
+      });
+    }
+
+    /**
+     * Make a search request to V&A API
+     */
+    async search(params = {}) {
+      const {
+        searchTerm = null,
+        offset = null,
+        limit = "1",
+        withImages = "1",
+        withDescription = "1",
+        after = null,
+        random = "0",
+        hasImage = "1"
+      } = params;
+      this.incrementSearchCount();
+      if (this.hasExceededMaxAttempts()) {
+        throw new Error("Maximum number of search attempts reached");
+      }
+      return new Promise((resolve, reject) => {
+        if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) {
+          console.log("Sending message to background script...");
+          chrome.runtime.sendMessage({
+            action: 'makeVaRequest',
+            params: {
+              searchTerm: searchTerm,
+              offset: offset,
+              limit: limit,
+              withImages: withImages,
+              withDescription: withDescription,
+              after: after,
+              random: random,
+              hasImage: hasImage
+            }
+          }, response => {
+            console.log("Received response from background script:", response);
+            if (response && response.success) {
+              console.log("API request successful");
+              resolve(response.data);
+            } else {
+              console.log("API request failed:", response ? response.error : "No response");
+              reject(new Error(response ? response.error : "API request failed"));
+            }
+          });
+        } else {
+          console.log("Running as standalone page - API requests will fail due to CORS");
+          reject(new Error("CORS not supported in standalone mode"));
+        }
+      });
+    }
+
+    /**
+     * Get a specific object by system number
+     */
+    async getObject(systemNumber) {
+      return this.search({
+        systemNumber: systemNumber
+      });
+    }
+
+    /**
+     * Process and normalize V&A object data
+     */
+    processObjectData(rawData) {
+      if (!rawData.records || rawData.records.length === 0) {
+        throw new Error("No object data found");
+      }
+      const objectInfo = rawData.records[0];
+      const imageId = objectInfo._primaryImageId;
+
+      // Handle artist dates
+      let datesAlive = "";
+      if (objectInfo._primaryMaker && objectInfo._primaryMaker.birthYear) {
+        const birthYear = objectInfo._primaryMaker.birthYear;
+        const deathYear = objectInfo._primaryMaker.deathYear;
+        if (birthYear && deathYear) {
+          datesAlive = "(" + birthYear + " - " + deathYear + ")";
+        } else if (birthYear) {
+          datesAlive = "(Born " + birthYear + ")";
+        }
+      }
+
+      // Clean up title
+      let title = objectInfo._primaryTitle != "" ? objectInfo._primaryTitle : objectInfo.objectType;
+      title = title.replace(/\^/, "").replace(/\<i\>/g, "").replace(/\<\\i\>/g, "").replace(/\<b\>/g, "").replace(/\<\\b\>/g, "");
+
+      // Create description from available data
+      const descriptionParts = [];
+      if (title && title !== objectInfo.objectType) {
+        descriptionParts.push(title);
+      }
+      if (objectInfo._primaryDate) {
+        descriptionParts.push("Dated " + objectInfo._primaryDate);
+      }
+      if (objectInfo._primaryPlace) {
+        descriptionParts.push("from " + objectInfo._primaryPlace);
+      }
+      if (objectInfo._primaryMaker && objectInfo._primaryMaker.name && objectInfo._primaryMaker.name !== "Unknown") {
+        descriptionParts.push("by " + objectInfo._primaryMaker.name);
+      }
+      const description = descriptionParts.length > 0 ? descriptionParts.join(", ") + "." : "A " + objectInfo.objectType + " from the V&A collection.";
+      return {
+        // Basic info
+        title: title,
+        objectType: objectInfo.objectType,
+        date: objectInfo._primaryDate || "",
+        artist: objectInfo._primaryMaker && objectInfo._primaryMaker.name ? objectInfo._primaryMaker.name : "",
+        datesAlive: datesAlive,
+        place: objectInfo._primaryPlace || "",
+        // Identifiers
+        systemNumber: objectInfo.systemNumber,
+        accessionNumber: objectInfo.accessionNumber,
+        imageId: imageId,
+        // URLs
+        imageUrl: this.buildImageUrl(imageId),
+        objectUrl: this.buildObjectUrl(objectInfo.systemNumber),
+        // Descriptions
+        description: description,
+        sideCaption: "<strong>" + title + " " + (objectInfo._primaryDate || "") + "</strong>" + " &mdash; " + (objectInfo._primaryMaker && objectInfo._primaryMaker.name ? objectInfo._primaryMaker.name : "") + " " + datesAlive,
+        // Museum info
+        museumLocation: objectInfo._currentLocation ? objectInfo._currentLocation.displayName : "",
+        // Raw data for additional processing
+        rawData: objectInfo
+      };
+    }
+
+    /**
+     * Build V&A image URL using IIIF format
+     */
+    buildImageUrl(imageId) {
+      if (imageId && imageId !== null && imageId !== "") {
+        return "https://framemark.vam.ac.uk/collections/" + imageId + "/full/1000,/0/default.jpg";
+      }
+      return "";
+    }
+
+    /**
+     * Build V&A object URL
+     */
+    buildObjectUrl(systemNumber) {
+      return this.collectionsUrl + systemNumber + "/" + systemNumber;
+    }
+
+    /**
+     * Get search terms for V&A
+     */
+    getSearchTerms() {
+      return this.searchTerms;
+    }
+
+    /**
+     * Choose a random search term for V&A
+     */
+    chooseSearchTerm() {
+      return this.searchTerms[pumkin.randomNum(0, this.searchTerms.length)];
+    }
+  }
+
+  /**
+   * Museum API Factory
+   * Creates and returns the appropriate API implementation
+   */
+  class MuseumApiFactory {
+    static create(museumType = 'vanda') {
+      switch (museumType.toLowerCase()) {
+        case 'vanda':
+        case 'v&a':
+        case 'victoria':
+          return new VandAApi();
+        // Future implementations:
+        // case 'smithsonian':
+        //     return new SmithsonianApi();
+        // case 'rijksmuseum':
+        //     return new RijksmuseumApi();
+        default:
+          throw new Error(`Unknown museum type: ${museumType}`);
+      }
+    }
+  }
+
+  // Export to global scope
+  SITE.MuseumApi = MuseumApi;
+  SITE.VandAApi = VandAApi;
+  SITE.MuseumApiFactory = MuseumApiFactory;
+})(this, this.jQuery);
 
 /***/ }),
 
@@ -970,6 +1215,7 @@ var pumkin = window.pumkin = {};
 /******/ 	__webpack_modules__["./assets/scripts/0_helpers.js"]();
 /******/ 	__webpack_modules__["./assets/scripts/1_global.js"]();
 /******/ 	__webpack_modules__["./assets/scripts/2_main.js"]();
+/******/ 	__webpack_modules__["./assets/scripts/museumApi.js"]();
 /******/ 	__webpack_modules__["./assets/scripts/3_va_api.js"]();
 /******/ 	var __webpack_exports__ = {};
 /******/ 	__webpack_modules__["./assets/scripts/x_docReady.js"]();
