@@ -543,29 +543,11 @@ var pumkin = window.pumkin = {};
         var objectInfo = data.records[0];
         console.log("Processing object data:", objectInfo);
         var imageId = objectInfo._primaryImageId;
-        if (!imageId || imageId === null || imageId === "") {
-            console.log("Object has no image, skipping to next object");
-            if (expectResponse === 2) {
-                chooseSearchTerm();
-                makeVaRequest(null, chosenSearchTerm);
-            } else {
-                if (data.records.length > 1) {
-                    console.log("Trying next object in search results");
-                    objectInfo = data.records[1];
-                    imageId = objectInfo._primaryImageId;
-                    if (!imageId || imageId === null || imageId === "") {
-                        console.log("Next object also has no image, trying new search");
-                        chooseSearchTerm();
-                        makeVaRequest(null, chosenSearchTerm);
-                        return;
-                    }
-                } else {
-                    console.log("No more objects in search results, trying new search");
-                    chooseSearchTerm();
-                    makeVaRequest(null, chosenSearchTerm);
-                    return;
-                }
-            }
+        if ((!imageId || imageId === null || imageId === "") && expectResponse !== 2 && data.records.length > 1) {
+            console.log("Object has no image, trying next object in search results");
+            objectInfo = data.records[1];
+            imageId = objectInfo._primaryImageId;
+            console.log("Next object image ID:", imageId);
         }
         var theObject = objectInfo.objectType;
         var theTitle = objectInfo._primaryTitle != "" ? objectInfo._primaryTitle : objectInfo.objectType;
@@ -587,7 +569,10 @@ var pumkin = window.pumkin = {};
                 datesAlive = "(Born " + birthYear + ")";
             }
         }
-        var imgUrl = "https://framemark.vam.ac.uk/collections/" + imageId + "/full/1000,/0/default.jpg";
+        var imgUrl = "";
+        if (imageId && imageId !== null && imageId !== "") {
+            imgUrl = "https://framemark.vam.ac.uk/collections/" + imageId + "/full/1000,/0/default.jpg";
+        }
         var objectUrl = vaCollectionsUrl + theSystemNumber + "/" + theSlug;
         var thePhysicalDescription = "";
         var theDimensions = "";
@@ -656,8 +641,13 @@ var pumkin = window.pumkin = {};
         $("#title").html(theTitle);
         if (theDate != "") $("#piece-date").text("(" + theDate + ")");
         $("#place").html(thePlace);
-        $("#image").attr("src", imgUrl);
-        $("#pinterest-button").attr("href", pinterestUrl);
+        if (imgUrl && imgUrl !== "") {
+            $("#image").attr("src", imgUrl);
+            $("#pinterest-button").attr("href", pinterestUrl);
+        } else {
+            var $imageContainer = $(".object-image-wrapper");
+            $imageContainer.html('<div class="image-placeholder"><p>Image not available</p><p><small>This object may not have been photographed yet, or the image may be temporarily unavailable.</small></p></div>');
+        }
         $("#page-link").attr("href", objectUrl);
         console.log("UI Updates - Setting title to:", theTitle);
         console.log("UI Updates - Setting artist to:", theArtist);
@@ -717,15 +707,19 @@ var pumkin = window.pumkin = {};
         }
         SITE.onThrottledResize();
         $(".content-placeholder, .hide-until-loaded").addClass("loaded");
-        $("img.image-hide-until-loaded").on("load", function() {
+        if (imgUrl && imgUrl !== "") {
+            $("img.image-hide-until-loaded").on("load", function() {
+                $(".image-hide-until-loaded, .hide-after-loaded").addClass("loaded");
+                $(this).removeClass("image-error");
+            }).on("error", function() {
+                console.log("Image failed to load:", imgUrl);
+                var $imageContainer = $(this).closest(".object-image-wrapper");
+                $imageContainer.html('<div class="image-placeholder"><p>Image not available</p><p><small>This object may not have been photographed yet, or the image may be temporarily unavailable.</small></p></div>');
+                $(".image-hide-until-loaded, .hide-after-loaded").addClass("loaded");
+            });
+        } else {
             $(".image-hide-until-loaded, .hide-after-loaded").addClass("loaded");
-            $(this).removeClass("image-error");
-        }).on("error", function() {
-            console.log("Image failed to load:", imgUrl);
-            var $imageContainer = $(this).closest(".object-image-wrapper");
-            $imageContainer.html('<div class="image-placeholder"><p>Image not available</p><p><small>This object may not have been photographed yet, or the image may be temporarily unavailable.</small></p></div>');
-            $(".image-hide-until-loaded, .hide-after-loaded").addClass("loaded");
-        });
+        }
         if (expectResponse !== 0 && expectResponse !== 1) {
             var historyObject = {
                 objectNumber: theSystemNumber,

@@ -178,32 +178,15 @@
 		
 		var imageId = objectInfo._primaryImageId;
 		
-		// Check if object has a valid image
-		if (!imageId || imageId === null || imageId === "") {
-			console.log("Object has no image, skipping to next object");
-			// For individual object requests, try a different search term
-			if (expectResponse === 2) {
-				chooseSearchTerm();
-				makeVaRequest(null, chosenSearchTerm);
-			} else {
-				// For search results, try the next object in the list
-				if (data.records.length > 1) {
-					console.log("Trying next object in search results");
-					objectInfo = data.records[1];
-					imageId = objectInfo._primaryImageId;
-					if (!imageId || imageId === null || imageId === "") {
-						console.log("Next object also has no image, trying new search");
-						chooseSearchTerm();
-						makeVaRequest(null, chosenSearchTerm);
-						return;
-					}
-				} else {
-					console.log("No more objects in search results, trying new search");
-					chooseSearchTerm();
-					makeVaRequest(null, chosenSearchTerm);
-					return;
-				}
-			}
+		// Check if object has a valid image - but allow objects without images to be displayed
+		// Only try to find another object if we're in a search results context and have multiple objects
+		if ((!imageId || imageId === null || imageId === "") && expectResponse !== 2 && data.records.length > 1) {
+			console.log("Object has no image, trying next object in search results");
+			// Try the next object in the list
+			objectInfo = data.records[1];
+			imageId = objectInfo._primaryImageId;
+			// If the next object also has no image, just proceed with it anyway
+			console.log("Next object image ID:", imageId);
 		}
 		
 		var theObject = objectInfo.objectType;
@@ -231,7 +214,10 @@
 		}
 		
 		// Use IIIF format for image URLs
-		var imgUrl = "https://framemark.vam.ac.uk/collections/" + imageId + "/full/1000,/0/default.jpg";
+		var imgUrl = "";
+		if (imageId && imageId !== null && imageId !== "") {
+			imgUrl = "https://framemark.vam.ac.uk/collections/" + imageId + "/full/1000,/0/default.jpg";
+		}
 		var objectUrl = vaCollectionsUrl + theSystemNumber + "/" + theSlug;
 		var thePhysicalDescription = ""; // Not available in v2 API response
 		var theDimensions = ""; // Not available in v2 API response
@@ -312,8 +298,16 @@
 		$("#title").html(theTitle);
 		if (theDate != "") $("#piece-date").text("(" + theDate + ")");
 		$("#place").html(thePlace);
-		$("#image").attr("src", imgUrl);
-		$("#pinterest-button").attr("href", pinterestUrl);
+		
+		// Handle image display
+		if (imgUrl && imgUrl !== "") {
+			$("#image").attr("src", imgUrl);
+			$("#pinterest-button").attr("href", pinterestUrl);
+		} else {
+			// No image available - show placeholder immediately
+			var $imageContainer = $('.object-image-wrapper');
+			$imageContainer.html('<div class="image-placeholder"><p>Image not available</p><p><small>This object may not have been photographed yet, or the image may be temporarily unavailable.</small></p></div>');
+		}
 		$("#page-link").attr("href", objectUrl);
 		
 		console.log("UI Updates - Setting title to:", theTitle);
@@ -379,17 +373,22 @@
 		SITE.onThrottledResize();
 		$(".content-placeholder, .hide-until-loaded").addClass("loaded");
 		
-		// Handle image loading with error fallback
-		$("img.image-hide-until-loaded").on('load', function() {
+		// Handle image loading with error fallback (only if we have an image)
+		if (imgUrl && imgUrl !== "") {
+			$("img.image-hide-until-loaded").on('load', function() {
+				$(".image-hide-until-loaded, .hide-after-loaded").addClass("loaded");
+				$(this).removeClass("image-error");
+			}).on('error', function() {
+				console.log("Image failed to load:", imgUrl);
+				// Replace broken image with placeholder message
+				var $imageContainer = $(this).closest('.object-image-wrapper');
+				$imageContainer.html('<div class="image-placeholder"><p>Image not available</p><p><small>This object may not have been photographed yet, or the image may be temporarily unavailable.</small></p></div>');
+				$(".image-hide-until-loaded, .hide-after-loaded").addClass("loaded");
+			});
+		} else {
+			// No image to load, so mark as loaded immediately
 			$(".image-hide-until-loaded, .hide-after-loaded").addClass("loaded");
-			$(this).removeClass("image-error");
-		}).on('error', function() {
-			console.log("Image failed to load:", imgUrl);
-			// Replace broken image with placeholder message
-			var $imageContainer = $(this).closest('.object-image-wrapper');
-			$imageContainer.html('<div class="image-placeholder"><p>Image not available</p><p><small>This object may not have been photographed yet, or the image may be temporarily unavailable.</small></p></div>');
-			$(".image-hide-until-loaded, .hide-after-loaded").addClass("loaded");
-		});
+		}
 
 		// Save object to history and persist
 		if (expectResponse !== 0 && expectResponse !== 1) {
