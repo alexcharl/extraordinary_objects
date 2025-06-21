@@ -7,7 +7,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Background script received message:', request);
   
   if (request.action === 'makeVaRequest') {
-    const { systemNumber, searchTerm, offset, limit, withImages, withDescription, after, random } = request.params;
+    const { systemNumber, searchTerm, offset, limit, withImages, withDescription, after, random, hasImage } = request.params;
     
     console.log('Making V&A API request with params:', request.params);
     
@@ -36,6 +36,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     
     if (systemNumber) {
       queryParams.set('kw_system_number', systemNumber);
+    }
+    
+    if (hasImage) {
+      queryParams.set('has_image', hasImage);
     }
     
     const url = `https://api.vam.ac.uk/v2/objects/search?${queryParams.toString()}`;

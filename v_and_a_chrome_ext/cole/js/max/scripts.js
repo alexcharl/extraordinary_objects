@@ -484,7 +484,8 @@ var pumkin = window.pumkin = {};
                         withImages: withImages,
                         withDescription: withDescription,
                         after: after,
-                        random: random
+                        random: random,
+                        hasImage: "1"
                     }
                 }, function(response) {
                     console.log("Received response from background script:", response);
@@ -542,6 +543,30 @@ var pumkin = window.pumkin = {};
         var objectInfo = data.records[0];
         console.log("Processing object data:", objectInfo);
         var imageId = objectInfo._primaryImageId;
+        if (!imageId || imageId === null || imageId === "") {
+            console.log("Object has no image, skipping to next object");
+            if (expectResponse === 2) {
+                chooseSearchTerm();
+                makeVaRequest(null, chosenSearchTerm);
+            } else {
+                if (data.records.length > 1) {
+                    console.log("Trying next object in search results");
+                    objectInfo = data.records[1];
+                    imageId = objectInfo._primaryImageId;
+                    if (!imageId || imageId === null || imageId === "") {
+                        console.log("Next object also has no image, trying new search");
+                        chooseSearchTerm();
+                        makeVaRequest(null, chosenSearchTerm);
+                        return;
+                    }
+                } else {
+                    console.log("No more objects in search results, trying new search");
+                    chooseSearchTerm();
+                    makeVaRequest(null, chosenSearchTerm);
+                    return;
+                }
+            }
+        }
         var theObject = objectInfo.objectType;
         var theTitle = objectInfo._primaryTitle != "" ? objectInfo._primaryTitle : objectInfo.objectType;
         var theDate = objectInfo._primaryDate;
@@ -551,7 +576,7 @@ var pumkin = window.pumkin = {};
         var theMaterials = "";
         var theDescription = "";
         var theContext = "";
-        console.log("Extracted data - Title:", theTitle, "Artist:", theArtist, "System Number:", theSystemNumber);
+        console.log("Extracted data - Title:", theTitle, "Artist:", theArtist, "System Number:", theSystemNumber, "Image ID:", imageId);
         var datesAlive = "";
         if (objectInfo._primaryMaker && objectInfo._primaryMaker.birthYear) {
             var birthYear = objectInfo._primaryMaker.birthYear;
@@ -692,7 +717,13 @@ var pumkin = window.pumkin = {};
         }
         SITE.onThrottledResize();
         $(".content-placeholder, .hide-until-loaded").addClass("loaded");
-        $("img.image-hide-until-loaded").load(function() {
+        $("img.image-hide-until-loaded").on("load", function() {
+            $(".image-hide-until-loaded, .hide-after-loaded").addClass("loaded");
+            $(this).removeClass("image-error");
+        }).on("error", function() {
+            console.log("Image failed to load:", imgUrl);
+            var $imageContainer = $(this).closest(".object-image-wrapper");
+            $imageContainer.html('<div class="image-placeholder"><p>Image not available</p><p><small>This object may not have been photographed yet, or the image may be temporarily unavailable.</small></p></div>');
             $(".image-hide-until-loaded, .hide-after-loaded").addClass("loaded");
         });
         if (expectResponse !== 0 && expectResponse !== 1) {

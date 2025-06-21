@@ -111,7 +111,8 @@
 						withImages: withImages,
 						withDescription: withDescription,
 						after: after,
-						random: random
+						random: random,
+						hasImage: "1"
 					}
 				}, function(response) {
 					console.log("Received response from background script:", response);
@@ -176,6 +177,35 @@
 		console.log("Processing object data:", objectInfo);
 		
 		var imageId = objectInfo._primaryImageId;
+		
+		// Check if object has a valid image
+		if (!imageId || imageId === null || imageId === "") {
+			console.log("Object has no image, skipping to next object");
+			// For individual object requests, try a different search term
+			if (expectResponse === 2) {
+				chooseSearchTerm();
+				makeVaRequest(null, chosenSearchTerm);
+			} else {
+				// For search results, try the next object in the list
+				if (data.records.length > 1) {
+					console.log("Trying next object in search results");
+					objectInfo = data.records[1];
+					imageId = objectInfo._primaryImageId;
+					if (!imageId || imageId === null || imageId === "") {
+						console.log("Next object also has no image, trying new search");
+						chooseSearchTerm();
+						makeVaRequest(null, chosenSearchTerm);
+						return;
+					}
+				} else {
+					console.log("No more objects in search results, trying new search");
+					chooseSearchTerm();
+					makeVaRequest(null, chosenSearchTerm);
+					return;
+				}
+			}
+		}
+		
 		var theObject = objectInfo.objectType;
 		var theTitle = objectInfo._primaryTitle != "" ? objectInfo._primaryTitle : objectInfo.objectType;
 		var theDate = objectInfo._primaryDate;
@@ -186,7 +216,7 @@
 		var theDescription = ""; // Not available in v2 API response
 		var theContext = ""; // Not available in v2 API response
 		
-		console.log("Extracted data - Title:", theTitle, "Artist:", theArtist, "System Number:", theSystemNumber);
+		console.log("Extracted data - Title:", theTitle, "Artist:", theArtist, "System Number:", theSystemNumber, "Image ID:", imageId);
 		
 		// Handle artist dates if available
 		var datesAlive = "";
@@ -348,7 +378,16 @@
 		}
 		SITE.onThrottledResize();
 		$(".content-placeholder, .hide-until-loaded").addClass("loaded");
-		$("img.image-hide-until-loaded").load(function() {
+		
+		// Handle image loading with error fallback
+		$("img.image-hide-until-loaded").on('load', function() {
+			$(".image-hide-until-loaded, .hide-after-loaded").addClass("loaded");
+			$(this).removeClass("image-error");
+		}).on('error', function() {
+			console.log("Image failed to load:", imgUrl);
+			// Replace broken image with placeholder message
+			var $imageContainer = $(this).closest('.object-image-wrapper');
+			$imageContainer.html('<div class="image-placeholder"><p>Image not available</p><p><small>This object may not have been photographed yet, or the image may be temporarily unavailable.</small></p></div>');
 			$(".image-hide-until-loaded, .hide-after-loaded").addClass("loaded");
 		});
 
