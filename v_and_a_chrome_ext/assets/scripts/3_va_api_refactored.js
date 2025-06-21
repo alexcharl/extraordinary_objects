@@ -1,9 +1,9 @@
 /**
- * V&A API - Refactored Version with Component System
+ * V&A API - Refactored Version with State Management
  * 
- * This version uses the modular component system for better maintainability
- * and extensibility. It replaces direct DOM manipulation with component-based
- * UI updates.
+ * This version uses the state management system for better data flow
+ * and component communication. It replaces direct component calls with
+ * state-based updates.
  */
 
 (function(window, $, Modernizr) {
@@ -148,36 +148,59 @@
         // Process the object data using the abstraction layer
         const objectData = museumApi.processObjectData(data);
         
-        // Update the UI using the component system
-        await updateUIWithComponentSystem(objectData);
+        // Update the state with the new object data
+        await updateStateWithObjectData(objectData);
         
         // Save to history if this is a final object (not a search step)
         if (expectResponse !== 0 && expectResponse !== 1) {
-            await saveToHistoryWithComponentSystem(objectData);
+            await saveToHistoryWithState(objectData);
         }
     }
     
     /**
-     * Update the UI using the component system
+     * Update state with object data using state management
      */
-    async function updateUIWithComponentSystem(objectData) {
-        console.log("Updating UI with component system:", objectData);
+    async function updateStateWithObjectData(objectData) {
+        console.log("Updating state with object data:", objectData);
         
         try {
-            // Use the component manager to update the object display
-            if (window.componentManager) {
-                await window.componentManager.updateObjectDisplay(objectData);
+            // Use state management to update the object
+            if (window.appState) {
+                // Update current object
+                window.appState.dispatch(objectActions.setCurrentObject(objectData));
+                
+                // Clear any previous errors
+                window.appState.dispatch(errorActions.clearError());
+                
+                console.log("State updated successfully with object data");
             } else {
-                // Fallback to direct DOM manipulation if component system not available
-                console.warn("Component system not available, using fallback");
+                // Fallback to direct component updates if state management not available
+                console.warn("State management not available, using fallback");
                 updateUIFallback(objectData);
             }
-            
-            console.log("UI updated successfully with component system");
         } catch (error) {
-            console.error("Error updating UI with component system:", error);
-            // Fallback to direct DOM manipulation
+            console.error("Error updating state with object data:", error);
+            // Fallback to direct component updates
             updateUIFallback(objectData);
+        }
+    }
+    
+    /**
+     * Save to history using state management
+     */
+    async function saveToHistoryWithState(objectData) {
+        try {
+            if (window.appState) {
+                window.appState.dispatch(historyActions.addToHistory(objectData));
+            } else {
+                // Fallback to direct history management
+                console.warn("State management not available, using fallback history");
+                saveToHistoryFallback(objectData);
+            }
+        } catch (error) {
+            console.error("Error saving to history with state:", error);
+            // Fallback to direct history management
+            saveToHistoryFallback(objectData);
         }
     }
     
@@ -272,25 +295,6 @@
     }
     
     /**
-     * Save to history using the component system
-     */
-    async function saveToHistoryWithComponentSystem(objectData) {
-        try {
-            if (window.componentManager) {
-                await window.componentManager.addToHistory(objectData);
-            } else {
-                // Fallback to direct history management
-                console.warn("Component system not available, using fallback history");
-                saveToHistoryFallback(objectData);
-            }
-        } catch (error) {
-            console.error("Error saving to history with component system:", error);
-            // Fallback to direct history management
-            saveToHistoryFallback(objectData);
-        }
-    }
-    
-    /**
      * Fallback history saving using direct DOM manipulation
      */
     function saveToHistoryFallback(objectData) {
@@ -301,6 +305,37 @@
         console.log("Fallback history save for object:", objectData.title);
     }
     
+    /**
+     * Show loading state using state management
+     */
+    function showLoading() {
+        if (window.appState) {
+            window.appState.dispatch(loadingActions.startLoading());
+        }
+    }
+    
+    /**
+     * Hide loading state using state management
+     */
+    function hideLoading() {
+        if (window.appState) {
+            window.appState.dispatch(loadingActions.stopLoading());
+        }
+    }
+    
+    /**
+     * Show error using state management
+     */
+    function showError(error) {
+        if (window.appState) {
+            window.appState.dispatch(errorActions.setError(error));
+            window.appState.dispatch(uiActions.openErrorOverlay());
+        } else {
+            // Fallback error handling
+            SITE.throwError();
+        }
+    }
+    
     // Public API
     // ----------------------------------------------------
     
@@ -308,6 +343,9 @@
     SITE.start = start;
     SITE.makeVaRequest = makeVaRequest;
     SITE.processResponse = processResponse;
+    SITE.showLoading = showLoading;
+    SITE.hideLoading = hideLoading;
+    SITE.showError = showError;
     
     // Initialize when called
     if (typeof SITE.initMain !== 'undefined') {

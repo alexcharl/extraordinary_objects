@@ -5,11 +5,11 @@
 /***/ (() => {
 
 /**
- * V&A API - Refactored Version with Component System
+ * V&A API - Refactored Version with State Management
  * 
- * This version uses the modular component system for better maintainability
- * and extensibility. It replaces direct DOM manipulation with component-based
- * UI updates.
+ * This version uses the state management system for better data flow
+ * and component communication. It replaces direct component calls with
+ * state-based updates.
  */
 
 (function (window, $, Modernizr) {
@@ -148,34 +148,57 @@
     // Process the object data using the abstraction layer
     const objectData = museumApi.processObjectData(data);
 
-    // Update the UI using the component system
-    await updateUIWithComponentSystem(objectData);
+    // Update the state with the new object data
+    await updateStateWithObjectData(objectData);
 
     // Save to history if this is a final object (not a search step)
     if (expectResponse !== 0 && expectResponse !== 1) {
-      await saveToHistoryWithComponentSystem(objectData);
+      await saveToHistoryWithState(objectData);
     }
   }
 
   /**
-   * Update the UI using the component system
+   * Update state with object data using state management
    */
-  async function updateUIWithComponentSystem(objectData) {
-    console.log("Updating UI with component system:", objectData);
+  async function updateStateWithObjectData(objectData) {
+    console.log("Updating state with object data:", objectData);
     try {
-      // Use the component manager to update the object display
-      if (window.componentManager) {
-        await window.componentManager.updateObjectDisplay(objectData);
+      // Use state management to update the object
+      if (window.appState) {
+        // Update current object
+        window.appState.dispatch(objectActions.setCurrentObject(objectData));
+
+        // Clear any previous errors
+        window.appState.dispatch(errorActions.clearError());
+        console.log("State updated successfully with object data");
       } else {
-        // Fallback to direct DOM manipulation if component system not available
-        console.warn("Component system not available, using fallback");
+        // Fallback to direct component updates if state management not available
+        console.warn("State management not available, using fallback");
         updateUIFallback(objectData);
       }
-      console.log("UI updated successfully with component system");
     } catch (error) {
-      console.error("Error updating UI with component system:", error);
-      // Fallback to direct DOM manipulation
+      console.error("Error updating state with object data:", error);
+      // Fallback to direct component updates
       updateUIFallback(objectData);
+    }
+  }
+
+  /**
+   * Save to history using state management
+   */
+  async function saveToHistoryWithState(objectData) {
+    try {
+      if (window.appState) {
+        window.appState.dispatch(historyActions.addToHistory(objectData));
+      } else {
+        // Fallback to direct history management
+        console.warn("State management not available, using fallback history");
+        saveToHistoryFallback(objectData);
+      }
+    } catch (error) {
+      console.error("Error saving to history with state:", error);
+      // Fallback to direct history management
+      saveToHistoryFallback(objectData);
     }
   }
 
@@ -268,25 +291,6 @@
   }
 
   /**
-   * Save to history using the component system
-   */
-  async function saveToHistoryWithComponentSystem(objectData) {
-    try {
-      if (window.componentManager) {
-        await window.componentManager.addToHistory(objectData);
-      } else {
-        // Fallback to direct history management
-        console.warn("Component system not available, using fallback history");
-        saveToHistoryFallback(objectData);
-      }
-    } catch (error) {
-      console.error("Error saving to history with component system:", error);
-      // Fallback to direct history management
-      saveToHistoryFallback(objectData);
-    }
-  }
-
-  /**
    * Fallback history saving using direct DOM manipulation
    */
   function saveToHistoryFallback(objectData) {
@@ -297,6 +301,37 @@
     console.log("Fallback history save for object:", objectData.title);
   }
 
+  /**
+   * Show loading state using state management
+   */
+  function showLoading() {
+    if (window.appState) {
+      window.appState.dispatch(loadingActions.startLoading());
+    }
+  }
+
+  /**
+   * Hide loading state using state management
+   */
+  function hideLoading() {
+    if (window.appState) {
+      window.appState.dispatch(loadingActions.stopLoading());
+    }
+  }
+
+  /**
+   * Show error using state management
+   */
+  function showError(error) {
+    if (window.appState) {
+      window.appState.dispatch(errorActions.setError(error));
+      window.appState.dispatch(uiActions.openErrorOverlay());
+    } else {
+      // Fallback error handling
+      SITE.throwError();
+    }
+  }
+
   // Public API
   // ----------------------------------------------------
 
@@ -304,6 +339,9 @@
   SITE.start = start;
   SITE.makeVaRequest = makeVaRequest;
   SITE.processResponse = processResponse;
+  SITE.showLoading = showLoading;
+  SITE.hideLoading = hideLoading;
+  SITE.showError = showError;
 
   // Initialize when called
   if (typeof SITE.initMain !== 'undefined') {
@@ -549,6 +587,221 @@ if ( true && module.exports) {
   module.exports = BaseComponent;
 } else if (typeof window !== 'undefined') {
   window.BaseComponent = BaseComponent;
+}
+
+/***/ }),
+
+/***/ 158:
+/***/ ((module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+/* unused harmony export selectors */
+/* module decorator */ module = __webpack_require__.hmd(module);
+/**
+ * State Connector
+ * 
+ * Provides a clean interface for components to connect to the state management system.
+ * Handles state subscriptions, updates, and component lifecycle management.
+ */
+
+class StateConnector {
+  constructor(appState) {
+    this.appState = appState;
+    this.connectedComponents = new Map();
+    this.subscriptions = new Map();
+  }
+
+  /**
+   * Connect a component to the state
+   */
+  connect(component, selectors = {}) {
+    if (!component || !component.name) {
+      console.error('[StateConnector] Invalid component provided');
+      return null;
+    }
+    const componentId = component.name;
+
+    // Store component reference
+    this.connectedComponents.set(componentId, component);
+
+    // Create subscriptions for each selector
+    const subscriptions = {};
+    Object.keys(selectors).forEach(selectorName => {
+      const selector = selectors[selectorName];
+      const unsubscribe = this.appState.subscribe(state => this.handleStateUpdate(componentId, selectorName, state), selector);
+      subscriptions[selectorName] = unsubscribe;
+    });
+
+    // Store subscriptions
+    this.subscriptions.set(componentId, subscriptions);
+
+    // Provide state methods to component
+    this.attachStateMethods(component);
+    console.log(`[StateConnector] Connected component: ${componentId}`);
+    return {
+      disconnect: () => this.disconnect(componentId),
+      dispatch: action => this.appState.dispatch(action),
+      getState: selector => this.appState.getState(selector)
+    };
+  }
+
+  /**
+   * Disconnect a component from the state
+   */
+  disconnect(componentId) {
+    const subscriptions = this.subscriptions.get(componentId);
+    if (subscriptions) {
+      // Unsubscribe from all selectors
+      Object.values(subscriptions).forEach(unsubscribe => {
+        if (typeof unsubscribe === 'function') {
+          unsubscribe();
+        }
+      });
+      this.subscriptions.delete(componentId);
+    }
+    this.connectedComponents.delete(componentId);
+    console.log(`[StateConnector] Disconnected component: ${componentId}`);
+  }
+
+  /**
+   * Handle state updates for a component
+   */
+  handleStateUpdate(componentId, selectorName, state) {
+    const component = this.connectedComponents.get(componentId);
+    if (!component) {
+      console.warn(`[StateConnector] Component not found: ${componentId}`);
+      return;
+    }
+    try {
+      // Call the component's state update method
+      const methodName = `on${selectorName.charAt(0).toUpperCase() + selectorName.slice(1)}Update`;
+      if (typeof component[methodName] === 'function') {
+        component[methodName](state);
+      } else {
+        // Fallback to generic update method
+        if (typeof component.onStateUpdate === 'function') {
+          component.onStateUpdate(selectorName, state);
+        }
+      }
+    } catch (error) {
+      console.error(`[StateConnector] Error updating component ${componentId}:`, error);
+    }
+  }
+
+  /**
+   * Attach state methods to a component
+   */
+  attachStateMethods(component) {
+    // Attach dispatch method
+    component.dispatch = action => {
+      this.appState.dispatch(action);
+    };
+
+    // Attach getState method
+    component.getState = selector => {
+      return this.appState.getState(selector);
+    };
+
+    // Attach convenience methods
+    component.getCurrentObject = () => {
+      return this.appState.getCurrentObject();
+    };
+    component.getHistory = () => {
+      return this.appState.getHistory();
+    };
+    component.getSettings = () => {
+      return this.appState.getSettings();
+    };
+    component.getUIState = () => {
+      return this.appState.getUIState();
+    };
+    component.getAPIState = () => {
+      return this.appState.getAPIState();
+    };
+    component.isLoading = () => {
+      return this.appState.isLoading();
+    };
+    component.getError = () => {
+      return this.appState.getError();
+    };
+  }
+
+  /**
+   * Dispatch an action to the state
+   */
+  dispatch(action) {
+    this.appState.dispatch(action);
+  }
+
+  /**
+   * Get current state
+   */
+  getState(selector = null) {
+    return this.appState.getState(selector);
+  }
+
+  /**
+   * Subscribe to state changes
+   */
+  subscribe(callback, selector = null) {
+    return this.appState.subscribe(callback, selector);
+  }
+
+  /**
+   * Get all connected components
+   */
+  getConnectedComponents() {
+    return Array.from(this.connectedComponents.keys());
+  }
+
+  /**
+   * Disconnect all components
+   */
+  disconnectAll() {
+    const componentIds = Array.from(this.connectedComponents.keys());
+    componentIds.forEach(id => this.disconnect(id));
+  }
+}
+
+// Common state selectors
+const selectors = {
+  // Object selectors
+  currentObject: state => state.currentObject,
+  isLoading: state => state.isLoading,
+  error: state => state.error,
+  // History selectors
+  history: state => state.history,
+  historyCount: state => state.history.length,
+  // UI selectors
+  ui: state => state.ui,
+  sidePanelOpen: state => state.ui.sidePanelOpen,
+  historyOverlayOpen: state => state.ui.historyOverlayOpen,
+  errorOverlayOpen: state => state.ui.errorOverlayOpen,
+  // Settings selectors
+  settings: state => state.settings,
+  searchTerms: state => state.settings.searchTerms,
+  strictSearch: state => state.settings.strictSearch,
+  currentMuseum: state => state.settings.currentMuseum,
+  // API selectors
+  api: state => state.api,
+  currentSearchTerm: state => state.api.currentSearchTerm,
+  searchAttempts: state => state.api.searchAttempts,
+  maxSearchAttempts: state => state.api.maxSearchAttempts,
+  // Composite selectors
+  hasReachedMaxAttempts: state => state.api.searchAttempts >= state.api.maxSearchAttempts,
+  hasHistory: state => state.history.length > 0,
+  hasCurrentObject: state => state.currentObject !== null
+};
+
+// Export for use in other modules
+if ( true && module.exports) {
+  module.exports = {
+    StateConnector,
+    selectors
+  };
+} else if (typeof window !== 'undefined') {
+  window.StateConnector = StateConnector;
+  window.stateSelectors = selectors;
 }
 
 /***/ }),
@@ -1457,6 +1710,451 @@ if ( true && module.exports) {
 
 /***/ }),
 
+/***/ 262:
+/***/ ((module) => {
+
+/**
+ * Application State Management
+ * 
+ * Centralized state management for the Chrome extension.
+ * Provides predictable state updates, persistence, and change notifications.
+ */
+
+class AppState {
+  constructor(options = {}) {
+    this.state = {
+      // Current object state
+      currentObject: null,
+      isLoading: false,
+      error: null,
+      // History state
+      history: [],
+      maxHistoryItems: options.maxHistoryItems || 10,
+      // UI state
+      ui: {
+        sidePanelOpen: false,
+        historyOverlayOpen: false,
+        errorOverlayOpen: false
+      },
+      // Settings state
+      settings: {
+        searchTerms: [],
+        strictSearch: false,
+        currentMuseum: 'vanda'
+      },
+      // API state
+      api: {
+        currentSearchTerm: null,
+        searchAttempts: 0,
+        maxSearchAttempts: 5
+      }
+    };
+    this.subscribers = new Map();
+    this.subscriberId = 0;
+    this.isInitialized = false;
+
+    // Bind methods
+    this.subscribe = this.subscribe.bind(this);
+    this.unsubscribe = this.unsubscribe.bind(this);
+    this.getState = this.getState.bind(this);
+    this.setState = this.setState.bind(this);
+    this.dispatch = this.dispatch.bind(this);
+  }
+
+  /**
+   * Initialize the state manager
+   */
+  async init() {
+    try {
+      console.log('[AppState] Initializing state manager...');
+
+      // Load persisted state from Chrome storage
+      await this.loadPersistedState();
+
+      // Set up storage change listener
+      this.setupStorageListener();
+      this.isInitialized = true;
+      console.log('[AppState] State manager initialized');
+    } catch (error) {
+      console.error('[AppState] Failed to initialize state manager:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Load persisted state from Chrome storage
+   */
+  async loadPersistedState() {
+    try {
+      if (typeof chrome !== 'undefined' && chrome.storage) {
+        const result = await new Promise(resolve => {
+          chrome.storage.local.get(['objectHistory', 'searchTerms', 'strictSearch', 'currentMuseum'], resolve);
+        });
+
+        // Update state with persisted data
+        if (result.objectHistory) {
+          this.state.history = result.objectHistory;
+        }
+        if (result.searchTerms) {
+          this.state.settings.searchTerms = result.searchTerms;
+        }
+        if (result.strictSearch !== undefined) {
+          this.state.settings.strictSearch = result.strictSearch;
+        }
+        if (result.currentMuseum) {
+          this.state.settings.currentMuseum = result.currentMuseum;
+        }
+        console.log('[AppState] Loaded persisted state');
+      }
+    } catch (error) {
+      console.error('[AppState] Error loading persisted state:', error);
+    }
+  }
+
+  /**
+   * Save state to Chrome storage
+   */
+  async savePersistedState() {
+    try {
+      if (typeof chrome !== 'undefined' && chrome.storage) {
+        await new Promise(resolve => {
+          chrome.storage.local.set({
+            objectHistory: this.state.history,
+            searchTerms: this.state.settings.searchTerms,
+            strictSearch: this.state.settings.strictSearch,
+            currentMuseum: this.state.settings.currentMuseum
+          }, resolve);
+        });
+        console.log('[AppState] Saved persisted state');
+      }
+    } catch (error) {
+      console.error('[AppState] Error saving persisted state:', error);
+    }
+  }
+
+  /**
+   * Set up Chrome storage change listener
+   */
+  setupStorageListener() {
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      chrome.storage.onChanged.addListener((changes, namespace) => {
+        // Update local state when storage changes
+        Object.keys(changes).forEach(key => {
+          const change = changes[key];
+          switch (key) {
+            case 'objectHistory':
+              this.state.history = change.newValue || [];
+              this.notifySubscribers('history');
+              break;
+            case 'searchTerms':
+              this.state.settings.searchTerms = change.newValue || [];
+              this.notifySubscribers('settings');
+              break;
+            case 'strictSearch':
+              this.state.settings.strictSearch = change.newValue || false;
+              this.notifySubscribers('settings');
+              break;
+            case 'currentMuseum':
+              this.state.settings.currentMuseum = change.newValue || 'vanda';
+              this.notifySubscribers('settings');
+              break;
+          }
+        });
+      });
+    }
+  }
+
+  /**
+   * Subscribe to state changes
+   */
+  subscribe(callback, selector = null) {
+    const id = ++this.subscriberId;
+    this.subscribers.set(id, {
+      callback,
+      selector
+    });
+
+    // Return unsubscribe function
+    return () => this.unsubscribe(id);
+  }
+
+  /**
+   * Unsubscribe from state changes
+   */
+  unsubscribe(id) {
+    this.subscribers.delete(id);
+  }
+
+  /**
+   * Get current state (or subset if selector provided)
+   */
+  getState(selector = null) {
+    if (selector) {
+      return selector(this.state);
+    }
+    return {
+      ...this.state
+    }; // Return copy to prevent direct mutation
+  }
+
+  /**
+   * Set state with partial update
+   */
+  setState(partialState) {
+    const prevState = {
+      ...this.state
+    };
+
+    // Deep merge the state
+    this.state = this.deepMerge(this.state, partialState);
+
+    // Notify subscribers
+    this.notifySubscribers(partialState);
+
+    // Save to storage if needed
+    this.savePersistedState();
+    console.log('[AppState] State updated:', partialState);
+  }
+
+  /**
+   * Dispatch an action to update state
+   */
+  dispatch(action) {
+    const {
+      type,
+      payload
+    } = action;
+    switch (type) {
+      case 'SET_CURRENT_OBJECT':
+        this.setState({
+          currentObject: payload
+        });
+        break;
+      case 'SET_LOADING':
+        this.setState({
+          isLoading: payload
+        });
+        break;
+      case 'SET_ERROR':
+        this.setState({
+          error: payload
+        });
+        break;
+      case 'ADD_TO_HISTORY':
+        this.addToHistory(payload);
+        break;
+      case 'CLEAR_HISTORY':
+        this.setState({
+          history: []
+        });
+        break;
+      case 'SET_UI_STATE':
+        this.setState({
+          ui: {
+            ...this.state.ui,
+            ...payload
+          }
+        });
+        break;
+      case 'SET_SETTINGS':
+        this.setState({
+          settings: {
+            ...this.state.settings,
+            ...payload
+          }
+        });
+        break;
+      case 'SET_API_STATE':
+        this.setState({
+          api: {
+            ...this.state.api,
+            ...payload
+          }
+        });
+        break;
+      case 'INCREMENT_SEARCH_ATTEMPTS':
+        this.setState({
+          api: {
+            ...this.state.api,
+            searchAttempts: this.state.api.searchAttempts + 1
+          }
+        });
+        break;
+      case 'RESET_SEARCH_ATTEMPTS':
+        this.setState({
+          api: {
+            ...this.state.api,
+            searchAttempts: 0
+          }
+        });
+        break;
+      default:
+        console.warn('[AppState] Unknown action type:', type);
+    }
+  }
+
+  /**
+   * Add object to history
+   */
+  addToHistory(objectData) {
+    if (!objectData || !objectData.objectNumber) {
+      console.warn('[AppState] Invalid object data for history');
+      return;
+    }
+
+    // Remove existing entry if it exists
+    const filteredHistory = this.state.history.filter(item => item.objectNumber !== objectData.objectNumber);
+
+    // Add to beginning of array
+    const newHistory = [{
+      objectNumber: objectData.objectNumber,
+      title: objectData.title,
+      artist: objectData.artist,
+      date: objectData.date,
+      imageUrl: objectData.imageUrl,
+      vaCollectionsUrl: objectData.objectUrl,
+      timestamp: Date.now()
+    }, ...filteredHistory];
+
+    // Limit history size
+    if (newHistory.length > this.state.maxHistoryItems) {
+      newHistory.splice(this.state.maxHistoryItems);
+    }
+    this.setState({
+      history: newHistory
+    });
+  }
+
+  /**
+   * Remove object from history
+   */
+  removeFromHistory(objectNumber) {
+    const newHistory = this.state.history.filter(item => item.objectNumber !== objectNumber);
+    this.setState({
+      history: newHistory
+    });
+  }
+
+  /**
+   * Notify subscribers of state changes
+   */
+  notifySubscribers(changedState) {
+    this.subscribers.forEach(({
+      callback,
+      selector
+    }) => {
+      try {
+        if (selector) {
+          // Only notify if the selected part of state changed
+          const relevantState = selector(this.state);
+          callback(relevantState);
+        } else {
+          // Notify with full state
+          callback({
+            ...this.state
+          });
+        }
+      } catch (error) {
+        console.error('[AppState] Error in subscriber callback:', error);
+      }
+    });
+  }
+
+  /**
+   * Deep merge objects
+   */
+  deepMerge(target, source) {
+    const result = {
+      ...target
+    };
+    for (const key in source) {
+      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+        result[key] = this.deepMerge(result[key] || {}, source[key]);
+      } else {
+        result[key] = source[key];
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Get specific state slice
+   */
+  getCurrentObject() {
+    return this.state.currentObject;
+  }
+  getHistory() {
+    return [...this.state.history];
+  }
+  getSettings() {
+    return {
+      ...this.state.settings
+    };
+  }
+  getUIState() {
+    return {
+      ...this.state.ui
+    };
+  }
+  getAPIState() {
+    return {
+      ...this.state.api
+    };
+  }
+  isLoading() {
+    return this.state.isLoading;
+  }
+  getError() {
+    return this.state.error;
+  }
+
+  /**
+   * Check if state manager is initialized
+   */
+  isReady() {
+    return this.isInitialized;
+  }
+
+  /**
+   * Reset state to initial values
+   */
+  reset() {
+    this.state = {
+      currentObject: null,
+      isLoading: false,
+      error: null,
+      history: [],
+      maxHistoryItems: this.state.maxHistoryItems,
+      ui: {
+        sidePanelOpen: false,
+        historyOverlayOpen: false,
+        errorOverlayOpen: false
+      },
+      settings: {
+        searchTerms: [],
+        strictSearch: false,
+        currentMuseum: 'vanda'
+      },
+      api: {
+        currentSearchTerm: null,
+        searchAttempts: 0,
+        maxSearchAttempts: 5
+      }
+    };
+    this.notifySubscribers(this.state);
+    this.savePersistedState();
+  }
+}
+
+// Export for use in other modules
+if ( true && module.exports) {
+  module.exports = AppState;
+} else if (typeof window !== 'undefined') {
+  window.AppState = AppState;
+}
+
+/***/ }),
+
 /***/ 305:
 /***/ ((module) => {
 
@@ -1467,7 +2165,7 @@ if ( true && module.exports) {
  * - Central component initialization
  * - Component communication
  * - Event handling coordination
- * - State management
+ * - State management integration
  */
 
 class ComponentManager {
@@ -1475,6 +2173,10 @@ class ComponentManager {
     this.components = {};
     this.isInitialized = false;
     this.options = options;
+
+    // State management
+    this.appState = null;
+    this.stateConnector = null;
 
     // Bind methods
     this.init = this.init.bind(this);
@@ -1490,6 +2192,9 @@ class ComponentManager {
   async init() {
     try {
       console.log('[ComponentManager] Initializing components...');
+
+      // Initialize state management first
+      await this.initStateManagement();
 
       // Initialize components in order
       await this.initObjectDisplay();
@@ -1507,11 +2212,44 @@ class ComponentManager {
   }
 
   /**
+   * Initialize state management
+   */
+  async initStateManagement() {
+    try {
+      // Create app state
+      this.appState = new AppState({
+        maxHistoryItems: this.options.maxHistoryItems || 10
+      });
+
+      // Initialize state
+      await this.appState.init();
+
+      // Create state connector
+      this.stateConnector = new StateConnector(this.appState);
+
+      // Make state globally available
+      window.appState = this.appState;
+      window.stateConnector = this.stateConnector;
+      console.log('[ComponentManager] State management initialized');
+    } catch (error) {
+      console.error('[ComponentManager] Failed to initialize state management:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Initialize Object Display Component
    */
   async initObjectDisplay() {
     try {
       const objectDisplay = new ObjectDisplayComponent(this.options.objectDisplay);
+
+      // Connect to state
+      this.stateConnector.connect(objectDisplay, {
+        currentObject: stateSelectors.currentObject,
+        isLoading: stateSelectors.isLoading,
+        error: stateSelectors.error
+      });
       await objectDisplay.init();
       this.components.objectDisplay = objectDisplay;
       console.log('[ComponentManager] Object Display Component initialized');
@@ -1530,8 +2268,14 @@ class ComponentManager {
         maxHistoryItems: this.options.maxHistoryItems || 10,
         ...this.options.history
       });
+
+      // Connect to state
+      this.stateConnector.connect(history, {
+        history: stateSelectors.history,
+        historyCount: stateSelectors.historyCount,
+        ui: stateSelectors.ui
+      });
       await history.init();
-      await history.loadHistory();
       this.components.history = history;
       console.log('[ComponentManager] History Component initialized');
     } catch (error) {
@@ -1546,6 +2290,13 @@ class ComponentManager {
   async initSidePanel() {
     try {
       const sidePanel = new SidePanelComponent(this.options.sidePanel);
+
+      // Connect to state
+      this.stateConnector.connect(sidePanel, {
+        settings: stateSelectors.settings,
+        searchTerms: stateSelectors.searchTerms,
+        ui: stateSelectors.ui
+      });
       await sidePanel.init();
       this.components.sidePanel = sidePanel;
       console.log('[ComponentManager] Side Panel Component initialized');
@@ -1570,10 +2321,8 @@ class ComponentManager {
     // Listen for window resize events
     window.addEventListener('resize', this.handleWindowResize.bind(this));
 
-    // Listen for storage changes
-    if (typeof chrome !== 'undefined' && chrome.storage) {
-      chrome.storage.onChanged.addListener(this.handleStorageChange.bind(this));
-    }
+    // Listen for storage changes (handled by state management)
+    // No need to duplicate here since AppState handles it
   }
 
   /**
@@ -1589,16 +2338,6 @@ class ComponentManager {
   }
 
   /**
-   * Handle storage changes
-   */
-  handleStorageChange(changes, namespace) {
-    // Update search terms in side panel when they change
-    if (changes.searchTerms && this.components.sidePanel) {
-      this.components.sidePanel.updateSearchTerms(changes.searchTerms.newValue);
-    }
-  }
-
-  /**
    * Get a specific component
    */
   getComponent(name) {
@@ -1610,15 +2349,12 @@ class ComponentManager {
    */
   async updateObjectDisplay(objectData) {
     try {
-      if (this.components.objectDisplay) {
-        this.components.objectDisplay.updateDisplay(objectData);
+      // Use state management to update object
+      this.appState.dispatch(objectActions.setCurrentObject(objectData));
 
-        // Automatically add to history
-        if (this.components.history) {
-          await this.components.history.addToHistory(objectData);
-        }
-        console.log('[ComponentManager] Object display updated');
-      }
+      // Add to history
+      this.appState.dispatch(historyActions.addToHistory(objectData));
+      console.log('[ComponentManager] Object display updated via state management');
     } catch (error) {
       console.error('[ComponentManager] Error updating object display:', error);
     }
@@ -1629,9 +2365,7 @@ class ComponentManager {
    */
   async addToHistory(objectData) {
     try {
-      if (this.components.history) {
-        await this.components.history.addToHistory(objectData);
-      }
+      this.appState.dispatch(historyActions.addToHistory(objectData));
     } catch (error) {
       console.error('[ComponentManager] Error adding to history:', error);
     }
@@ -1641,118 +2375,128 @@ class ComponentManager {
    * Show loading state
    */
   showLoading() {
-    if (this.components.objectDisplay) {
-      this.components.objectDisplay.showLoading();
-    }
+    this.appState.dispatch(loadingActions.startLoading());
   }
 
   /**
    * Hide loading state
    */
   hideLoading() {
-    if (this.components.objectDisplay) {
-      this.components.objectDisplay.hideLoading();
-    }
+    this.appState.dispatch(loadingActions.stopLoading());
   }
 
   /**
    * Show error state
    */
-  showError() {
-    // Show error overlay
-    const overlay = document.querySelector('.overlay');
-    if (overlay) {
-      overlay.classList.remove('closed');
-      overlay.classList.add('open', 'for-warning');
-      $(overlay).fadeIn(500);
-    }
+  showError(error = 'An error occurred') {
+    this.appState.dispatch(errorActions.setError(error));
+    this.appState.dispatch(uiActions.openErrorOverlay());
   }
 
   /**
    * Hide error state
    */
   hideError() {
-    const overlay = document.querySelector('.overlay');
-    if (overlay) {
-      $(overlay).fadeOut(500, () => {
-        overlay.classList.remove('open', 'for-warning');
-        overlay.classList.add('closed');
-      });
-    }
+    this.appState.dispatch(errorActions.clearError());
+    this.appState.dispatch(uiActions.closeErrorOverlay());
   }
 
   /**
    * Get current object data
    */
   getCurrentObject() {
-    if (this.components.objectDisplay) {
-      return this.components.objectDisplay.getCurrentObject();
-    }
-    return null;
+    return this.appState.getCurrentObject();
   }
 
   /**
    * Get history data
    */
   getHistory() {
-    if (this.components.history) {
-      return this.components.history.getHistory();
-    }
-    return [];
+    return this.appState.getHistory();
   }
 
   /**
    * Clear history
    */
   async clearHistory() {
-    if (this.components.history) {
-      await this.components.history.clearHistory();
-    }
+    this.appState.dispatch(historyActions.clearHistory());
   }
 
   /**
    * Update search terms display
    */
   updateSearchTerms(searchTerms) {
-    if (this.components.sidePanel) {
-      this.components.sidePanel.updateSearchTerms(searchTerms);
-    }
+    this.appState.dispatch(settingsActions.updateSearchTerms(searchTerms));
   }
 
   /**
    * Open side panel
    */
   openSidePanel() {
-    if (this.components.sidePanel) {
-      this.components.sidePanel.openPanel();
-    }
+    this.appState.dispatch(uiActions.openSidePanel());
   }
 
   /**
    * Close side panel
    */
   closeSidePanel() {
-    if (this.components.sidePanel) {
-      this.components.sidePanel.closePanel();
-    }
+    this.appState.dispatch(uiActions.closeSidePanel());
   }
 
   /**
    * Show history
    */
   showHistory() {
-    if (this.components.history) {
-      this.components.history.showHistory();
-    }
+    this.appState.dispatch(uiActions.openHistoryOverlay());
   }
 
   /**
    * Hide history
    */
   hideHistory() {
-    if (this.components.history) {
-      this.components.history.hideHistory();
-    }
+    this.appState.dispatch(uiActions.closeHistoryOverlay());
+  }
+
+  /**
+   * Get settings
+   */
+  getSettings() {
+    return this.appState.getSettings();
+  }
+
+  /**
+   * Update settings
+   */
+  updateSettings(settings) {
+    this.appState.dispatch(settingsActions.setSettings(settings));
+  }
+
+  /**
+   * Get API state
+   */
+  getAPIState() {
+    return this.appState.getAPIState();
+  }
+
+  /**
+   * Update API state
+   */
+  updateAPIState(apiState) {
+    this.appState.dispatch(apiActions.setAPIState(apiState));
+  }
+
+  /**
+   * Increment search attempts
+   */
+  incrementSearchAttempts() {
+    this.appState.dispatch(apiActions.incrementSearchAttempts());
+  }
+
+  /**
+   * Reset search attempts
+   */
+  resetSearchAttempts() {
+    this.appState.dispatch(apiActions.resetSearchAttempts());
   }
 
   /**
@@ -1772,11 +2516,58 @@ class ComponentManager {
   }
 
   /**
+   * Get state manager
+   */
+  getStateManager() {
+    return this.appState;
+  }
+
+  /**
+   * Get state connector
+   */
+  getStateConnector() {
+    return this.stateConnector;
+  }
+
+  /**
+   * Dispatch action to state
+   */
+  dispatch(action) {
+    this.appState.dispatch(action);
+  }
+
+  /**
+   * Get current state
+   */
+  getState(selector = null) {
+    return this.appState.getState(selector);
+  }
+
+  /**
+   * Subscribe to state changes
+   */
+  subscribe(callback, selector = null) {
+    return this.appState.subscribe(callback, selector);
+  }
+
+  /**
+   * Reset application state
+   */
+  resetState() {
+    this.appState.reset();
+  }
+
+  /**
    * Destroy all components
    */
   async destroy() {
     try {
       console.log('[ComponentManager] Destroying components...');
+
+      // Disconnect all components from state
+      if (this.stateConnector) {
+        this.stateConnector.disconnectAll();
+      }
 
       // Destroy components in reverse order
       const componentNames = Object.keys(this.components).reverse();
@@ -2081,6 +2872,272 @@ var pumkin = window.pumkin = {};
 
 /***/ }),
 
+/***/ 711:
+/***/ ((module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+/* unused harmony exports ActionTypes, objectActions, loadingActions, errorActions, historyActions, uiActions, settingsActions, apiActions, compositeActions, createBatchAction, actions */
+/* module decorator */ module = __webpack_require__.hmd(module);
+/**
+ * Action Creators
+ * 
+ * Provides a clean interface for creating actions that update the application state.
+ * Makes state updates more predictable and easier to debug.
+ */
+
+// Action Types
+const ActionTypes = {
+  // Object actions
+  SET_CURRENT_OBJECT: 'SET_CURRENT_OBJECT',
+  CLEAR_CURRENT_OBJECT: 'CLEAR_CURRENT_OBJECT',
+  // Loading actions
+  SET_LOADING: 'SET_LOADING',
+  START_LOADING: 'START_LOADING',
+  STOP_LOADING: 'STOP_LOADING',
+  // Error actions
+  SET_ERROR: 'SET_ERROR',
+  CLEAR_ERROR: 'CLEAR_ERROR',
+  // History actions
+  ADD_TO_HISTORY: 'ADD_TO_HISTORY',
+  REMOVE_FROM_HISTORY: 'REMOVE_FROM_HISTORY',
+  CLEAR_HISTORY: 'CLEAR_HISTORY',
+  // UI actions
+  SET_UI_STATE: 'SET_UI_STATE',
+  OPEN_SIDE_PANEL: 'OPEN_SIDE_PANEL',
+  CLOSE_SIDE_PANEL: 'CLOSE_SIDE_PANEL',
+  OPEN_HISTORY_OVERLAY: 'OPEN_HISTORY_OVERLAY',
+  CLOSE_HISTORY_OVERLAY: 'CLOSE_HISTORY_OVERLAY',
+  OPEN_ERROR_OVERLAY: 'OPEN_ERROR_OVERLAY',
+  CLOSE_ERROR_OVERLAY: 'CLOSE_ERROR_OVERLAY',
+  // Settings actions
+  SET_SETTINGS: 'SET_SETTINGS',
+  UPDATE_SEARCH_TERMS: 'UPDATE_SEARCH_TERMS',
+  SET_STRICT_SEARCH: 'SET_STRICT_SEARCH',
+  SET_CURRENT_MUSEUM: 'SET_CURRENT_MUSEUM',
+  // API actions
+  SET_API_STATE: 'SET_API_STATE',
+  SET_CURRENT_SEARCH_TERM: 'SET_CURRENT_SEARCH_TERM',
+  INCREMENT_SEARCH_ATTEMPTS: 'INCREMENT_SEARCH_ATTEMPTS',
+  RESET_SEARCH_ATTEMPTS: 'RESET_SEARCH_ATTEMPTS',
+  // Batch actions
+  BATCH_UPDATE: 'BATCH_UPDATE'
+};
+
+// Object Actions
+const objectActions = {
+  setCurrentObject: objectData => ({
+    type: ActionTypes.SET_CURRENT_OBJECT,
+    payload: objectData
+  }),
+  clearCurrentObject: () => ({
+    type: ActionTypes.CLEAR_CURRENT_OBJECT,
+    payload: null
+  })
+};
+
+// Loading Actions
+const loadingActions = {
+  setLoading: isLoading => ({
+    type: ActionTypes.SET_LOADING,
+    payload: isLoading
+  }),
+  startLoading: () => ({
+    type: ActionTypes.START_LOADING,
+    payload: true
+  }),
+  stopLoading: () => ({
+    type: ActionTypes.STOP_LOADING,
+    payload: false
+  })
+};
+
+// Error Actions
+const errorActions = {
+  setError: error => ({
+    type: ActionTypes.SET_ERROR,
+    payload: error
+  }),
+  clearError: () => ({
+    type: ActionTypes.CLEAR_ERROR,
+    payload: null
+  })
+};
+
+// History Actions
+const historyActions = {
+  addToHistory: objectData => ({
+    type: ActionTypes.ADD_TO_HISTORY,
+    payload: objectData
+  }),
+  removeFromHistory: objectNumber => ({
+    type: ActionTypes.REMOVE_FROM_HISTORY,
+    payload: objectNumber
+  }),
+  clearHistory: () => ({
+    type: ActionTypes.CLEAR_HISTORY,
+    payload: null
+  })
+};
+
+// UI Actions
+const uiActions = {
+  setUIState: uiState => ({
+    type: ActionTypes.SET_UI_STATE,
+    payload: uiState
+  }),
+  openSidePanel: () => ({
+    type: ActionTypes.OPEN_SIDE_PANEL,
+    payload: {
+      sidePanelOpen: true
+    }
+  }),
+  closeSidePanel: () => ({
+    type: ActionTypes.CLOSE_SIDE_PANEL,
+    payload: {
+      sidePanelOpen: false
+    }
+  }),
+  openHistoryOverlay: () => ({
+    type: ActionTypes.OPEN_HISTORY_OVERLAY,
+    payload: {
+      historyOverlayOpen: true
+    }
+  }),
+  closeHistoryOverlay: () => ({
+    type: ActionTypes.CLOSE_HISTORY_OVERLAY,
+    payload: {
+      historyOverlayOpen: false
+    }
+  }),
+  openErrorOverlay: () => ({
+    type: ActionTypes.OPEN_ERROR_OVERLAY,
+    payload: {
+      errorOverlayOpen: true
+    }
+  }),
+  closeErrorOverlay: () => ({
+    type: ActionTypes.CLOSE_ERROR_OVERLAY,
+    payload: {
+      errorOverlayOpen: false
+    }
+  })
+};
+
+// Settings Actions
+const settingsActions = {
+  setSettings: settings => ({
+    type: ActionTypes.SET_SETTINGS,
+    payload: settings
+  }),
+  updateSearchTerms: searchTerms => ({
+    type: ActionTypes.UPDATE_SEARCH_TERMS,
+    payload: {
+      searchTerms
+    }
+  }),
+  setStrictSearch: strictSearch => ({
+    type: ActionTypes.SET_STRICT_SEARCH,
+    payload: {
+      strictSearch
+    }
+  }),
+  setCurrentMuseum: currentMuseum => ({
+    type: ActionTypes.SET_CURRENT_MUSEUM,
+    payload: {
+      currentMuseum
+    }
+  })
+};
+
+// API Actions
+const apiActions = {
+  setAPIState: apiState => ({
+    type: ActionTypes.SET_API_STATE,
+    payload: apiState
+  }),
+  setCurrentSearchTerm: searchTerm => ({
+    type: ActionTypes.SET_CURRENT_SEARCH_TERM,
+    payload: {
+      currentSearchTerm: searchTerm
+    }
+  }),
+  incrementSearchAttempts: () => ({
+    type: ActionTypes.INCREMENT_SEARCH_ATTEMPTS,
+    payload: null
+  }),
+  resetSearchAttempts: () => ({
+    type: ActionTypes.RESET_SEARCH_ATTEMPTS,
+    payload: null
+  })
+};
+
+// Composite Actions (combine multiple actions)
+const compositeActions = {
+  // Load object and update state
+  loadObject: objectData => [loadingActions.startLoading(), objectActions.setCurrentObject(objectData), historyActions.addToHistory(objectData), loadingActions.stopLoading(), errorActions.clearError()],
+  // Show error state
+  showError: error => [errorActions.setError(error), loadingActions.stopLoading(), uiActions.openErrorOverlay()],
+  // Clear error state
+  clearError: () => [errorActions.clearError(), uiActions.closeErrorOverlay()],
+  // Update search settings
+  updateSearchSettings: (searchTerms, strictSearch) => [settingsActions.updateSearchTerms(searchTerms), settingsActions.setStrictSearch(strictSearch), apiActions.resetSearchAttempts()],
+  // Reset application state
+  resetApp: () => [objectActions.clearCurrentObject(), loadingActions.stopLoading(), errorActions.clearError(), historyActions.clearHistory(), uiActions.setUIState({
+    sidePanelOpen: false,
+    historyOverlayOpen: false,
+    errorOverlayOpen: false
+  }), apiActions.resetSearchAttempts()]
+};
+
+// Helper function to create batch actions
+const createBatchAction = actions => ({
+  type: ActionTypes.BATCH_UPDATE,
+  payload: actions
+});
+
+// Export all actions
+const actions = {
+  ...objectActions,
+  ...loadingActions,
+  ...errorActions,
+  ...historyActions,
+  ...uiActions,
+  ...settingsActions,
+  ...apiActions,
+  ...compositeActions
+};
+
+// Export for use in other modules
+if ( true && module.exports) {
+  module.exports = {
+    ActionTypes,
+    actions,
+    objectActions,
+    loadingActions,
+    errorActions,
+    historyActions,
+    uiActions,
+    settingsActions,
+    apiActions,
+    compositeActions,
+    createBatchAction
+  };
+} else if (typeof window !== 'undefined') {
+  window.ActionTypes = ActionTypes;
+  window.actions = actions;
+  window.objectActions = objectActions;
+  window.loadingActions = loadingActions;
+  window.errorActions = errorActions;
+  window.historyActions = historyActions;
+  window.uiActions = uiActions;
+  window.settingsActions = settingsActions;
+  window.apiActions = apiActions;
+  window.compositeActions = compositeActions;
+  window.createBatchAction = createBatchAction;
+}
+
+/***/ }),
+
 /***/ 760:
 /***/ (function() {
 
@@ -2108,134 +3165,153 @@ var pumkin = window.pumkin = {};
 /**
  * Object Display Component
  * 
- * Handles the display of museum objects including:
- * - Object image and metadata
- * - Title, artist, and date information
- * - Technical details and descriptions
- * - Image loading and error states
+ * Handles the display of museum objects and their details.
+ * Now integrated with state management for reactive updates.
  */
 
 class ObjectDisplayComponent extends BaseComponent {
   constructor(options = {}) {
-    super('ObjectDisplay', options);
+    super('ObjectDisplayComponent', options);
     this.currentObject = null;
+    this.isLoading = false;
+    this.error = null;
+
+    // Bind methods
+    this.onCurrentObjectUpdate = this.onCurrentObjectUpdate.bind(this);
+    this.onLoadingUpdate = this.onLoadingUpdate.bind(this);
+    this.onErrorUpdate = this.onErrorUpdate.bind(this);
   }
 
   /**
-   * Cache DOM elements
+   * Initialize the component
    */
-  cacheElements() {
-    this.elements = {
-      // Basic object info
-      title: document.getElementById('title'),
-      pieceDate: document.getElementById('piece-date'),
-      creatorName: document.getElementById('creator-name'),
-      datesAlive: document.getElementById('dates-alive'),
-      place: document.getElementById('place'),
-      // Image elements
-      image: document.getElementById('image'),
-      imageWrapper: document.querySelector('.object-image-wrapper'),
-      // Description sections
-      objectDescription: document.getElementById('object-description'),
-      objectContext: document.getElementById('object-context'),
-      // Technical information
-      physicalDescription: document.getElementById('physical-description'),
-      techInfoPlace: document.getElementById('tech-info-place'),
-      techInfoPieceDate: document.getElementById('tech-info-piece-date'),
-      techInfoCreatorName: document.getElementById('tech-info-creator-name'),
-      techInfoMaterials: document.getElementById('tech-info-materials'),
-      dimensions: document.getElementById('dimensions'),
-      museumLocation: document.getElementById('museum-location'),
-      museumNumber: document.getElementById('museum-number'),
-      // Loading elements
-      loading: document.querySelector('.loading'),
-      // Navigation
-      downArrow: document.querySelector('.down-arrow'),
-      textContent: document.querySelector('.text-content-column')
-    };
-  }
+  async init() {
+    try {
+      console.log('[ObjectDisplayComponent] Initializing...');
 
-  /**
-   * Bind event listeners
-   */
-  bindEvents() {
-    // Down arrow click for scrolling
-    if (this.elements.downArrow) {
-      this.addEvent(this.elements.downArrow, 'click', this.handleDownArrowClick);
-    }
+      // Set up event listeners
+      this.setupEventListeners();
 
-    // Image load events
-    if (this.elements.image) {
-      this.addEvent(this.elements.image, 'load', this.handleImageLoad);
-      this.addEvent(this.elements.image, 'error', this.handleImageError);
+      // Initial UI setup
+      this.setupInitialUI();
+      console.log('[ObjectDisplayComponent] Initialized successfully');
+    } catch (error) {
+      console.error('[ObjectDisplayComponent] Failed to initialize:', error);
+      throw error;
     }
   }
 
   /**
-   * Handle down arrow click for smooth scrolling
+   * Set up event listeners
    */
-  handleDownArrowClick(event) {
-    event.preventDefault();
-    if (this.elements.textContent) {
-      $('#object-description').velocity('scroll', {
-        duration: 700,
-        offset: -100,
-        easing: 'ease-in-out',
-        container: $(this.elements.textContent)
-      });
+  setupEventListeners() {
+    // Handle image loading
+    this.on('click', '#image', this.handleImageClick.bind(this));
+
+    // Handle Pinterest button
+    this.on('click', '#pinterest-button', this.handlePinterestClick.bind(this));
+
+    // Handle Twitter button
+    this.on('click', '#twitter-button', this.handleTwitterClick.bind(this));
+
+    // Handle page link
+    this.on('click', '#page-link', this.handlePageLinkClick.bind(this));
+  }
+
+  /**
+   * Set up initial UI state
+   */
+  setupInitialUI() {
+    // Show loading state initially
+    this.showLoading();
+  }
+
+  /**
+   * Handle current object state updates
+   */
+  onCurrentObjectUpdate(objectData) {
+    console.log('[ObjectDisplayComponent] Object data updated:', objectData);
+    if (objectData) {
+      this.currentObject = objectData;
+      this.updateDisplay(objectData);
+    } else {
+      this.currentObject = null;
+      this.clearDisplay();
     }
   }
 
   /**
-   * Handle successful image load
+   * Handle loading state updates
    */
-  handleImageLoad(event) {
-    console.log('[ObjectDisplay] Image loaded successfully');
-    this.hide(this.elements.loading);
-    this.show(this.elements.image, 'fadeIn');
+  onLoadingUpdate(isLoading) {
+    console.log('[ObjectDisplayComponent] Loading state updated:', isLoading);
+    this.isLoading = isLoading;
+    if (isLoading) {
+      this.showLoading();
+    } else {
+      this.hideLoading();
+    }
   }
 
   /**
-   * Handle image load error
+   * Handle error state updates
    */
-  handleImageError(event) {
-    console.warn('[ObjectDisplay] Image failed to load');
-    this.showImagePlaceholder();
+  onErrorUpdate(error) {
+    console.log('[ObjectDisplayComponent] Error state updated:', error);
+    this.error = error;
+    if (error) {
+      this.showError(error);
+    } else {
+      this.hideError();
+    }
   }
 
   /**
-   * Show image placeholder when no image is available
-   */
-  showImagePlaceholder() {
-    if (!this.elements.imageWrapper) return;
-    const placeholderHTML = `
-            <div class="image-placeholder">
-                <p>Image not available</p>
-                <p><small>This object may not have been photographed yet, or the image may be temporarily unavailable.</small></p>
-            </div>
-        `;
-    this.setHTML(this.elements.imageWrapper, placeholderHTML);
-    this.hide(this.elements.loading);
-  }
-
-  /**
-   * Update the display with new object data
+   * Update the display with object data
    */
   updateDisplay(objectData) {
-    if (!objectData) {
-      console.warn('[ObjectDisplay] No object data provided');
-      return;
-    }
-    this.currentObject = objectData;
     try {
+      console.log('[ObjectDisplayComponent] Updating display with object data');
+
+      // Handle title length for CSS classes
+      this.updateTitleClasses(objectData.title);
+
+      // Update basic information
       this.updateBasicInfo(objectData);
+
+      // Update image
       this.updateImage(objectData);
+
+      // Update links
+      this.updateLinks(objectData);
+
+      // Update descriptions
       this.updateDescriptions(objectData);
+
+      // Update technical information
       this.updateTechnicalInfo(objectData);
-      this.handleTitleLength(objectData.title);
-      console.log('[ObjectDisplay] Display updated successfully');
+
+      // Hide loading state
+      this.hideLoading();
+      console.log('[ObjectDisplayComponent] Display updated successfully');
     } catch (error) {
-      console.error('[ObjectDisplay] Error updating display:', error);
+      console.error('[ObjectDisplayComponent] Error updating display:', error);
+      this.showError('Failed to update display');
+    }
+  }
+
+  /**
+   * Update title CSS classes based on length
+   */
+  updateTitleClasses(title) {
+    const $title = $("#title");
+    const $pieceDate = $("#piece-date");
+    if (title.length > 42) {
+      $title.addClass("reduced");
+      $pieceDate.addClass("reduced");
+    } else {
+      $title.removeClass("reduced");
+      $pieceDate.removeClass("reduced");
     }
   }
 
@@ -2243,75 +3319,81 @@ class ObjectDisplayComponent extends BaseComponent {
    * Update basic object information
    */
   updateBasicInfo(objectData) {
-    // Update creator/artist information
-    this.setText(this.elements.creatorName, objectData.artist);
-    this.setText(this.elements.datesAlive, objectData.datesAlive);
-
-    // Update title and date
-    this.setHTML(this.elements.title, objectData.title);
+    $("#creator-name").text(objectData.artist || '');
+    $("#dates-alive").text(objectData.datesAlive || '');
+    $("#title").html(objectData.title || '');
     if (objectData.date && objectData.date !== "") {
-      this.setText(this.elements.pieceDate, `(${objectData.date})`);
+      $("#piece-date").text("(" + objectData.date + ")");
     } else {
-      this.setText(this.elements.pieceDate, '');
+      $("#piece-date").text("");
     }
-
-    // Update place information
-    this.setHTML(this.elements.place, objectData.place);
+    $("#place").html(objectData.place || '');
   }
 
   /**
    * Update object image
    */
   updateImage(objectData) {
-    if (!this.elements.image) return;
     if (objectData.imageUrl && objectData.imageUrl !== "") {
-      // Show loading state
-      this.show(this.elements.loading);
-      this.hide(this.elements.image);
-
-      // Set image source
-      this.setAttribute(this.elements.image, 'src', objectData.imageUrl);
-
-      // Update Pinterest URL
-      this.updatePinterestUrl(objectData);
+      $("#image").attr("src", objectData.imageUrl);
     } else {
-      this.showImagePlaceholder();
+      // No image available - show placeholder
+      const $imageContainer = $('.object-image-wrapper');
+      $imageContainer.html(`
+                <div class="image-placeholder">
+                    <p>Image not available</p>
+                    <p><small>This object may not have been photographed yet, or the image may be temporarily unavailable.</small></p>
+                </div>
+            `);
     }
   }
 
   /**
-   * Update Pinterest sharing URL
+   * Update object links
    */
-  updatePinterestUrl(objectData) {
-    const pinterestButton = document.getElementById('pinterest-button');
-    if (!pinterestButton) return;
-    let pinterestUrl = "https://www.pinterest.com/pin/create/button/";
-    pinterestUrl += "?url=" + encodeURIComponent(objectData.objectUrl);
-    pinterestUrl += "&media=" + encodeURIComponent(objectData.imageUrl);
-    pinterestUrl += "&description=" + encodeURIComponent(objectData.title);
-    if (objectData.date !== "") {
-      pinterestUrl += encodeURIComponent(` (${objectData.place}, ${objectData.date})`);
+  updateLinks(objectData) {
+    // Update page link
+    $("#page-link").attr("href", objectData.objectUrl || '#');
+
+    // Update Pinterest URL
+    if (objectData.imageUrl && objectData.title) {
+      let pinterestUrl = "https://www.pinterest.com/pin/create/button/";
+      pinterestUrl += "?url=" + encodeURIComponent(objectData.objectUrl || '');
+      pinterestUrl += "&media=" + encodeURIComponent(objectData.imageUrl);
+      pinterestUrl += "&description=" + encodeURIComponent(objectData.title);
+      if (objectData.date !== "") {
+        pinterestUrl += encodeURIComponent(" (" + objectData.place + ", " + objectData.date + ")");
+      }
+      pinterestUrl += encodeURIComponent(", V%26A Collection");
+      $("#pinterest-button").attr("href", pinterestUrl);
     }
-    pinterestUrl += encodeURIComponent(", V&A Collection");
-    this.setAttribute(pinterestButton, 'href', pinterestUrl);
+
+    // Update Twitter URL
+    if (objectData.title) {
+      let twitterUrl = "https://twitter.com/intent/tweet";
+      twitterUrl += "?text=" + encodeURIComponent(objectData.title);
+      if (objectData.date !== "") {
+        twitterUrl += encodeURIComponent(" (" + objectData.place + ", " + objectData.date + ")");
+      }
+      twitterUrl += encodeURIComponent(", V&A Collection ");
+      twitterUrl += encodeURIComponent(objectData.objectUrl || '');
+      $("#twitter-button").attr("href", twitterUrl);
+    }
   }
 
   /**
    * Update object descriptions
    */
   updateDescriptions(objectData) {
-    // Update main description
     if (objectData.description && objectData.description !== "") {
-      this.setHTML(this.elements.objectDescription, `<p>${objectData.description}</p>`);
+      $("#object-description").html("<p>" + objectData.description + "</p>");
     } else {
-      this.setHTML(this.elements.objectDescription, '<p></p>');
+      $("#object-description").html("");
     }
-
-    // Update context information
     if (objectData.context && objectData.context !== "") {
-      this.setHTML(this.elements.objectContext, `<p>${objectData.context}</p>`);
+      $("#object-context").html("<p>" + objectData.context + "</p>");
     } else {
-      this.setHTML(this.elements.objectContext, '<p></p>');
+      $("#object-context").html("");
     }
   }
 
@@ -2319,71 +3401,150 @@ class ObjectDisplayComponent extends BaseComponent {
    * Update technical information
    */
   updateTechnicalInfo(objectData) {
-    // Helper function to hide empty sections
-    const hideIfEmpty = (element, value) => {
-      if (!element) return;
-      if (value && value !== "") {
-        this.setText(element, value);
-        $(element).closest('section').show();
+    const fields = [{
+      selector: "#physical-description",
+      value: objectData.physicalDescription
+    }, {
+      selector: "#tech-info-place",
+      value: objectData.place
+    }, {
+      selector: "#tech-info-piece-date",
+      value: objectData.date
+    }, {
+      selector: "#tech-info-creator-name",
+      value: objectData.artist
+    }, {
+      selector: "#tech-info-materials",
+      value: objectData.materials
+    }, {
+      selector: "#dimensions",
+      value: objectData.dimensions
+    }, {
+      selector: "#museum-location",
+      value: objectData.museumLocation
+    }, {
+      selector: "#museum-number",
+      value: objectData.objectNumber
+    }];
+    fields.forEach(field => {
+      if (field.value && field.value !== "") {
+        $(field.selector).text(field.value);
+        $(field.selector).closest('section').show();
       } else {
-        $(element).closest('section').hide();
+        $(field.selector).closest('section').hide();
       }
-    };
-
-    // Update technical details
-    hideIfEmpty(this.elements.physicalDescription, objectData.physicalDescription);
-    hideIfEmpty(this.elements.techInfoPlace, objectData.place);
-    hideIfEmpty(this.elements.techInfoPieceDate, objectData.date);
-    hideIfEmpty(this.elements.techInfoCreatorName, objectData.artist);
-    hideIfEmpty(this.elements.techInfoMaterials, objectData.materials);
-    hideIfEmpty(this.elements.dimensions, objectData.dimensions);
-    hideIfEmpty(this.elements.museumLocation, objectData.museumLocation);
-    hideIfEmpty(this.elements.museumNumber, objectData.objectNumber);
+    });
   }
 
   /**
-   * Handle long titles by adding CSS classes
+   * Clear the display
    */
-  handleTitleLength(title) {
-    if (!title) return;
-    if (title.length > 42) {
-      this.toggleClass(this.elements.title, 'reduced', true);
-      this.toggleClass(this.elements.pieceDate, 'reduced', true);
-    } else {
-      this.toggleClass(this.elements.title, 'reduced', false);
-      this.toggleClass(this.elements.pieceDate, 'reduced', false);
-    }
+  clearDisplay() {
+    console.log('[ObjectDisplayComponent] Clearing display');
+
+    // Clear all text fields
+    $("#creator-name, #dates-alive, #title, #piece-date, #place").text("");
+
+    // Clear image
+    $("#image").attr("src", "");
+
+    // Clear descriptions
+    $("#object-description, #object-context").html("");
+
+    // Hide all technical info sections
+    $("section").hide();
+
+    // Clear links
+    $("#page-link, #pinterest-button, #twitter-button").attr("href", "#");
   }
 
   /**
    * Show loading state
    */
   showLoading() {
-    this.show(this.elements.loading);
-    this.hide(this.elements.image);
+    console.log('[ObjectDisplayComponent] Showing loading state');
+
+    // Show loading indicator
+    $('.object-display').addClass('loading');
+
+    // You could add a loading spinner here if needed
+    // $('.object-display').append('<div class="loading-spinner">Loading...</div>');
   }
 
   /**
    * Hide loading state
    */
   hideLoading() {
-    this.hide(this.elements.loading);
+    console.log('[ObjectDisplayComponent] Hiding loading state');
+
+    // Hide loading indicator
+    $('.object-display').removeClass('loading');
+
+    // Remove loading spinner if it exists
+    $('.loading-spinner').remove();
   }
 
   /**
-   * Clear the display
+   * Show error state
    */
-  clear() {
-    this.setText(this.elements.title, '');
-    this.setText(this.elements.pieceDate, '');
-    this.setText(this.elements.creatorName, '');
-    this.setText(this.elements.datesAlive, '');
-    this.setText(this.elements.place, '');
-    this.setHTML(this.elements.objectDescription, '<p></p>');
-    this.setHTML(this.elements.objectContext, '<p></p>');
-    this.setAttribute(this.elements.image, 'src', '');
-    this.hide(this.elements.image);
-    this.currentObject = null;
+  showError(error) {
+    console.log('[ObjectDisplayComponent] Showing error:', error);
+
+    // Show error message
+    $('.object-display').addClass('error');
+
+    // You could add an error message display here
+    // $('.object-display').append(`<div class="error-message">${error}</div>`);
+  }
+
+  /**
+   * Hide error state
+   */
+  hideError() {
+    console.log('[ObjectDisplayComponent] Hiding error state');
+
+    // Hide error indicator
+    $('.object-display').removeClass('error');
+
+    // Remove error message if it exists
+    $('.error-message').remove();
+  }
+
+  /**
+   * Handle image click
+   */
+  handleImageClick(event) {
+    console.log('[ObjectDisplayComponent] Image clicked');
+
+    // Open image in new tab if it exists
+    const imageUrl = $(event.target).attr('src');
+    if (imageUrl && imageUrl !== '') {
+      window.open(imageUrl, '_blank');
+    }
+  }
+
+  /**
+   * Handle Pinterest button click
+   */
+  handlePinterestClick(event) {
+    console.log('[ObjectDisplayComponent] Pinterest button clicked');
+    // Pinterest will handle the redirect automatically
+  }
+
+  /**
+   * Handle Twitter button click
+   */
+  handleTwitterClick(event) {
+    console.log('[ObjectDisplayComponent] Twitter button clicked');
+    // Twitter will handle the redirect automatically
+  }
+
+  /**
+   * Handle page link click
+   */
+  handlePageLinkClick(event) {
+    console.log('[ObjectDisplayComponent] Page link clicked');
+    // Link will open in new tab automatically
   }
 
   /**
@@ -2391,6 +3552,28 @@ class ObjectDisplayComponent extends BaseComponent {
    */
   getCurrentObject() {
     return this.currentObject;
+  }
+
+  /**
+   * Check if currently loading
+   */
+  isLoading() {
+    return this.isLoading;
+  }
+
+  /**
+   * Get current error
+   */
+  getError() {
+    return this.error;
+  }
+
+  /**
+   * Handle window resize
+   */
+  handleResize(event) {
+    // Handle responsive behavior if needed
+    console.log('[ObjectDisplayComponent] Window resized');
   }
 }
 
@@ -2778,17 +3961,53 @@ if ( true && module.exports) {
 /******/ 		}
 /******/ 		// Create a new module (and put it into the cache)
 /******/ 		var module = __webpack_module_cache__[moduleId] = {
-/******/ 			// no module.id needed
-/******/ 			// no module.loaded needed
+/******/ 			id: moduleId,
+/******/ 			loaded: false,
 /******/ 			exports: {}
 /******/ 		};
 /******/ 	
 /******/ 		// Execute the module function
 /******/ 		__webpack_modules__[moduleId].call(module.exports, module, module.exports, __webpack_require__);
 /******/ 	
+/******/ 		// Flag the module as loaded
+/******/ 		module.loaded = true;
+/******/ 	
 /******/ 		// Return the exports of the module
 /******/ 		return module.exports;
 /******/ 	}
+/******/ 	
+/************************************************************************/
+/******/ 	/* webpack/runtime/define property getters */
+/******/ 	(() => {
+/******/ 		// define getter functions for harmony exports
+/******/ 		__webpack_require__.d = (exports, definition) => {
+/******/ 			for(var key in definition) {
+/******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 				}
+/******/ 			}
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/harmony module decorator */
+/******/ 	(() => {
+/******/ 		__webpack_require__.hmd = (module) => {
+/******/ 			module = Object.create(module);
+/******/ 			if (!module.children) module.children = [];
+/******/ 			Object.defineProperty(module, 'exports', {
+/******/ 				enumerable: true,
+/******/ 				set: () => {
+/******/ 					throw new Error('ES Modules may not assign module.exports or exports.*, Use ESM export syntax, instead: ' + module.id);
+/******/ 				}
+/******/ 			});
+/******/ 			return module;
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
+/******/ 	(() => {
+/******/ 		__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+/******/ 	})();
 /******/ 	
 /************************************************************************/
 /******/ 	
@@ -2799,6 +4018,9 @@ if ( true && module.exports) {
 /******/ 	__webpack_require__(607);
 /******/ 	__webpack_require__(162);
 /******/ 	__webpack_require__(886);
+/******/ 	__webpack_require__(262);
+/******/ 	__webpack_require__(711);
+/******/ 	__webpack_require__(158);
 /******/ 	__webpack_require__(127);
 /******/ 	__webpack_require__(869);
 /******/ 	__webpack_require__(228);

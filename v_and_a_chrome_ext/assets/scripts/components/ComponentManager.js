@@ -5,7 +5,7 @@
  * - Central component initialization
  * - Component communication
  * - Event handling coordination
- * - State management
+ * - State management integration
  */
 
 class ComponentManager {
@@ -13,6 +13,10 @@ class ComponentManager {
         this.components = {};
         this.isInitialized = false;
         this.options = options;
+        
+        // State management
+        this.appState = null;
+        this.stateConnector = null;
         
         // Bind methods
         this.init = this.init.bind(this);
@@ -28,6 +32,9 @@ class ComponentManager {
     async init() {
         try {
             console.log('[ComponentManager] Initializing components...');
+            
+            // Initialize state management first
+            await this.initStateManagement();
             
             // Initialize components in order
             await this.initObjectDisplay();
@@ -47,11 +54,47 @@ class ComponentManager {
     }
     
     /**
+     * Initialize state management
+     */
+    async initStateManagement() {
+        try {
+            // Create app state
+            this.appState = new AppState({
+                maxHistoryItems: this.options.maxHistoryItems || 10
+            });
+            
+            // Initialize state
+            await this.appState.init();
+            
+            // Create state connector
+            this.stateConnector = new StateConnector(this.appState);
+            
+            // Make state globally available
+            window.appState = this.appState;
+            window.stateConnector = this.stateConnector;
+            
+            console.log('[ComponentManager] State management initialized');
+            
+        } catch (error) {
+            console.error('[ComponentManager] Failed to initialize state management:', error);
+            throw error;
+        }
+    }
+    
+    /**
      * Initialize Object Display Component
      */
     async initObjectDisplay() {
         try {
             const objectDisplay = new ObjectDisplayComponent(this.options.objectDisplay);
+            
+            // Connect to state
+            this.stateConnector.connect(objectDisplay, {
+                currentObject: stateSelectors.currentObject,
+                isLoading: stateSelectors.isLoading,
+                error: stateSelectors.error
+            });
+            
             await objectDisplay.init();
             this.components.objectDisplay = objectDisplay;
             console.log('[ComponentManager] Object Display Component initialized');
@@ -70,8 +113,15 @@ class ComponentManager {
                 maxHistoryItems: this.options.maxHistoryItems || 10,
                 ...this.options.history
             });
+            
+            // Connect to state
+            this.stateConnector.connect(history, {
+                history: stateSelectors.history,
+                historyCount: stateSelectors.historyCount,
+                ui: stateSelectors.ui
+            });
+            
             await history.init();
-            await history.loadHistory();
             this.components.history = history;
             console.log('[ComponentManager] History Component initialized');
         } catch (error) {
@@ -86,6 +136,14 @@ class ComponentManager {
     async initSidePanel() {
         try {
             const sidePanel = new SidePanelComponent(this.options.sidePanel);
+            
+            // Connect to state
+            this.stateConnector.connect(sidePanel, {
+                settings: stateSelectors.settings,
+                searchTerms: stateSelectors.searchTerms,
+                ui: stateSelectors.ui
+            });
+            
             await sidePanel.init();
             this.components.sidePanel = sidePanel;
             console.log('[ComponentManager] Side Panel Component initialized');
@@ -110,10 +168,8 @@ class ComponentManager {
         // Listen for window resize events
         window.addEventListener('resize', this.handleWindowResize.bind(this));
         
-        // Listen for storage changes
-        if (typeof chrome !== 'undefined' && chrome.storage) {
-            chrome.storage.onChanged.addListener(this.handleStorageChange.bind(this));
-        }
+        // Listen for storage changes (handled by state management)
+        // No need to duplicate here since AppState handles it
     }
     
     /**
@@ -129,16 +185,6 @@ class ComponentManager {
     }
     
     /**
-     * Handle storage changes
-     */
-    handleStorageChange(changes, namespace) {
-        // Update search terms in side panel when they change
-        if (changes.searchTerms && this.components.sidePanel) {
-            this.components.sidePanel.updateSearchTerms(changes.searchTerms.newValue);
-        }
-    }
-    
-    /**
      * Get a specific component
      */
     getComponent(name) {
@@ -150,16 +196,13 @@ class ComponentManager {
      */
     async updateObjectDisplay(objectData) {
         try {
-            if (this.components.objectDisplay) {
-                this.components.objectDisplay.updateDisplay(objectData);
-                
-                // Automatically add to history
-                if (this.components.history) {
-                    await this.components.history.addToHistory(objectData);
-                }
-                
-                console.log('[ComponentManager] Object display updated');
-            }
+            // Use state management to update object
+            this.appState.dispatch(objectActions.setCurrentObject(objectData));
+            
+            // Add to history
+            this.appState.dispatch(historyActions.addToHistory(objectData));
+            
+            console.log('[ComponentManager] Object display updated via state management');
         } catch (error) {
             console.error('[ComponentManager] Error updating object display:', error);
         }
@@ -170,9 +213,7 @@ class ComponentManager {
      */
     async addToHistory(objectData) {
         try {
-            if (this.components.history) {
-                await this.components.history.addToHistory(objectData);
-            }
+            this.appState.dispatch(historyActions.addToHistory(objectData));
         } catch (error) {
             console.error('[ComponentManager] Error adding to history:', error);
         }
@@ -182,118 +223,128 @@ class ComponentManager {
      * Show loading state
      */
     showLoading() {
-        if (this.components.objectDisplay) {
-            this.components.objectDisplay.showLoading();
-        }
+        this.appState.dispatch(loadingActions.startLoading());
     }
     
     /**
      * Hide loading state
      */
     hideLoading() {
-        if (this.components.objectDisplay) {
-            this.components.objectDisplay.hideLoading();
-        }
+        this.appState.dispatch(loadingActions.stopLoading());
     }
     
     /**
      * Show error state
      */
-    showError() {
-        // Show error overlay
-        const overlay = document.querySelector('.overlay');
-        if (overlay) {
-            overlay.classList.remove('closed');
-            overlay.classList.add('open', 'for-warning');
-            $(overlay).fadeIn(500);
-        }
+    showError(error = 'An error occurred') {
+        this.appState.dispatch(errorActions.setError(error));
+        this.appState.dispatch(uiActions.openErrorOverlay());
     }
     
     /**
      * Hide error state
      */
     hideError() {
-        const overlay = document.querySelector('.overlay');
-        if (overlay) {
-            $(overlay).fadeOut(500, () => {
-                overlay.classList.remove('open', 'for-warning');
-                overlay.classList.add('closed');
-            });
-        }
+        this.appState.dispatch(errorActions.clearError());
+        this.appState.dispatch(uiActions.closeErrorOverlay());
     }
     
     /**
      * Get current object data
      */
     getCurrentObject() {
-        if (this.components.objectDisplay) {
-            return this.components.objectDisplay.getCurrentObject();
-        }
-        return null;
+        return this.appState.getCurrentObject();
     }
     
     /**
      * Get history data
      */
     getHistory() {
-        if (this.components.history) {
-            return this.components.history.getHistory();
-        }
-        return [];
+        return this.appState.getHistory();
     }
     
     /**
      * Clear history
      */
     async clearHistory() {
-        if (this.components.history) {
-            await this.components.history.clearHistory();
-        }
+        this.appState.dispatch(historyActions.clearHistory());
     }
     
     /**
      * Update search terms display
      */
     updateSearchTerms(searchTerms) {
-        if (this.components.sidePanel) {
-            this.components.sidePanel.updateSearchTerms(searchTerms);
-        }
+        this.appState.dispatch(settingsActions.updateSearchTerms(searchTerms));
     }
     
     /**
      * Open side panel
      */
     openSidePanel() {
-        if (this.components.sidePanel) {
-            this.components.sidePanel.openPanel();
-        }
+        this.appState.dispatch(uiActions.openSidePanel());
     }
     
     /**
      * Close side panel
      */
     closeSidePanel() {
-        if (this.components.sidePanel) {
-            this.components.sidePanel.closePanel();
-        }
+        this.appState.dispatch(uiActions.closeSidePanel());
     }
     
     /**
      * Show history
      */
     showHistory() {
-        if (this.components.history) {
-            this.components.history.showHistory();
-        }
+        this.appState.dispatch(uiActions.openHistoryOverlay());
     }
     
     /**
      * Hide history
      */
     hideHistory() {
-        if (this.components.history) {
-            this.components.history.hideHistory();
-        }
+        this.appState.dispatch(uiActions.closeHistoryOverlay());
+    }
+    
+    /**
+     * Get settings
+     */
+    getSettings() {
+        return this.appState.getSettings();
+    }
+    
+    /**
+     * Update settings
+     */
+    updateSettings(settings) {
+        this.appState.dispatch(settingsActions.setSettings(settings));
+    }
+    
+    /**
+     * Get API state
+     */
+    getAPIState() {
+        return this.appState.getAPIState();
+    }
+    
+    /**
+     * Update API state
+     */
+    updateAPIState(apiState) {
+        this.appState.dispatch(apiActions.setAPIState(apiState));
+    }
+    
+    /**
+     * Increment search attempts
+     */
+    incrementSearchAttempts() {
+        this.appState.dispatch(apiActions.incrementSearchAttempts());
+    }
+    
+    /**
+     * Reset search attempts
+     */
+    resetSearchAttempts() {
+        this.appState.dispatch(apiActions.resetSearchAttempts());
     }
     
     /**
@@ -311,11 +362,58 @@ class ComponentManager {
     }
     
     /**
+     * Get state manager
+     */
+    getStateManager() {
+        return this.appState;
+    }
+    
+    /**
+     * Get state connector
+     */
+    getStateConnector() {
+        return this.stateConnector;
+    }
+    
+    /**
+     * Dispatch action to state
+     */
+    dispatch(action) {
+        this.appState.dispatch(action);
+    }
+    
+    /**
+     * Get current state
+     */
+    getState(selector = null) {
+        return this.appState.getState(selector);
+    }
+    
+    /**
+     * Subscribe to state changes
+     */
+    subscribe(callback, selector = null) {
+        return this.appState.subscribe(callback, selector);
+    }
+    
+    /**
+     * Reset application state
+     */
+    resetState() {
+        this.appState.reset();
+    }
+    
+    /**
      * Destroy all components
      */
     async destroy() {
         try {
             console.log('[ComponentManager] Destroying components...');
+            
+            // Disconnect all components from state
+            if (this.stateConnector) {
+                this.stateConnector.disconnectAll();
+            }
             
             // Destroy components in reverse order
             const componentNames = Object.keys(this.components).reverse();

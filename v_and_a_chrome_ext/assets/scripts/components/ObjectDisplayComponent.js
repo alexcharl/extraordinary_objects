@@ -1,145 +1,163 @@
 /**
  * Object Display Component
  * 
- * Handles the display of museum objects including:
- * - Object image and metadata
- * - Title, artist, and date information
- * - Technical details and descriptions
- * - Image loading and error states
+ * Handles the display of museum objects and their details.
+ * Now integrated with state management for reactive updates.
  */
 
 class ObjectDisplayComponent extends BaseComponent {
     constructor(options = {}) {
-        super('ObjectDisplay', options);
+        super('ObjectDisplayComponent', options);
+        
         this.currentObject = null;
-    }
-    
-    /**
-     * Cache DOM elements
-     */
-    cacheElements() {
-        this.elements = {
-            // Basic object info
-            title: document.getElementById('title'),
-            pieceDate: document.getElementById('piece-date'),
-            creatorName: document.getElementById('creator-name'),
-            datesAlive: document.getElementById('dates-alive'),
-            place: document.getElementById('place'),
-            
-            // Image elements
-            image: document.getElementById('image'),
-            imageWrapper: document.querySelector('.object-image-wrapper'),
-            
-            // Description sections
-            objectDescription: document.getElementById('object-description'),
-            objectContext: document.getElementById('object-context'),
-            
-            // Technical information
-            physicalDescription: document.getElementById('physical-description'),
-            techInfoPlace: document.getElementById('tech-info-place'),
-            techInfoPieceDate: document.getElementById('tech-info-piece-date'),
-            techInfoCreatorName: document.getElementById('tech-info-creator-name'),
-            techInfoMaterials: document.getElementById('tech-info-materials'),
-            dimensions: document.getElementById('dimensions'),
-            museumLocation: document.getElementById('museum-location'),
-            museumNumber: document.getElementById('museum-number'),
-            
-            // Loading elements
-            loading: document.querySelector('.loading'),
-            
-            // Navigation
-            downArrow: document.querySelector('.down-arrow'),
-            textContent: document.querySelector('.text-content-column')
-        };
-    }
-    
-    /**
-     * Bind event listeners
-     */
-    bindEvents() {
-        // Down arrow click for scrolling
-        if (this.elements.downArrow) {
-            this.addEvent(this.elements.downArrow, 'click', this.handleDownArrowClick);
-        }
+        this.isLoading = false;
+        this.error = null;
         
-        // Image load events
-        if (this.elements.image) {
-            this.addEvent(this.elements.image, 'load', this.handleImageLoad);
-            this.addEvent(this.elements.image, 'error', this.handleImageError);
+        // Bind methods
+        this.onCurrentObjectUpdate = this.onCurrentObjectUpdate.bind(this);
+        this.onLoadingUpdate = this.onLoadingUpdate.bind(this);
+        this.onErrorUpdate = this.onErrorUpdate.bind(this);
+    }
+    
+    /**
+     * Initialize the component
+     */
+    async init() {
+        try {
+            console.log('[ObjectDisplayComponent] Initializing...');
+            
+            // Set up event listeners
+            this.setupEventListeners();
+            
+            // Initial UI setup
+            this.setupInitialUI();
+            
+            console.log('[ObjectDisplayComponent] Initialized successfully');
+        } catch (error) {
+            console.error('[ObjectDisplayComponent] Failed to initialize:', error);
+            throw error;
         }
     }
     
     /**
-     * Handle down arrow click for smooth scrolling
+     * Set up event listeners
      */
-    handleDownArrowClick(event) {
-        event.preventDefault();
+    setupEventListeners() {
+        // Handle image loading
+        this.on('click', '#image', this.handleImageClick.bind(this));
         
-        if (this.elements.textContent) {
-            $('#object-description').velocity('scroll', {
-                duration: 700,
-                offset: -100,
-                easing: 'ease-in-out',
-                container: $(this.elements.textContent)
-            });
+        // Handle Pinterest button
+        this.on('click', '#pinterest-button', this.handlePinterestClick.bind(this));
+        
+        // Handle Twitter button
+        this.on('click', '#twitter-button', this.handleTwitterClick.bind(this));
+        
+        // Handle page link
+        this.on('click', '#page-link', this.handlePageLinkClick.bind(this));
+    }
+    
+    /**
+     * Set up initial UI state
+     */
+    setupInitialUI() {
+        // Show loading state initially
+        this.showLoading();
+    }
+    
+    /**
+     * Handle current object state updates
+     */
+    onCurrentObjectUpdate(objectData) {
+        console.log('[ObjectDisplayComponent] Object data updated:', objectData);
+        
+        if (objectData) {
+            this.currentObject = objectData;
+            this.updateDisplay(objectData);
+        } else {
+            this.currentObject = null;
+            this.clearDisplay();
         }
     }
     
     /**
-     * Handle successful image load
+     * Handle loading state updates
      */
-    handleImageLoad(event) {
-        console.log('[ObjectDisplay] Image loaded successfully');
-        this.hide(this.elements.loading);
-        this.show(this.elements.image, 'fadeIn');
-    }
-    
-    /**
-     * Handle image load error
-     */
-    handleImageError(event) {
-        console.warn('[ObjectDisplay] Image failed to load');
-        this.showImagePlaceholder();
-    }
-    
-    /**
-     * Show image placeholder when no image is available
-     */
-    showImagePlaceholder() {
-        if (!this.elements.imageWrapper) return;
+    onLoadingUpdate(isLoading) {
+        console.log('[ObjectDisplayComponent] Loading state updated:', isLoading);
         
-        const placeholderHTML = `
-            <div class="image-placeholder">
-                <p>Image not available</p>
-                <p><small>This object may not have been photographed yet, or the image may be temporarily unavailable.</small></p>
-            </div>
-        `;
+        this.isLoading = isLoading;
         
-        this.setHTML(this.elements.imageWrapper, placeholderHTML);
-        this.hide(this.elements.loading);
+        if (isLoading) {
+            this.showLoading();
+        } else {
+            this.hideLoading();
+        }
     }
     
     /**
-     * Update the display with new object data
+     * Handle error state updates
+     */
+    onErrorUpdate(error) {
+        console.log('[ObjectDisplayComponent] Error state updated:', error);
+        
+        this.error = error;
+        
+        if (error) {
+            this.showError(error);
+        } else {
+            this.hideError();
+        }
+    }
+    
+    /**
+     * Update the display with object data
      */
     updateDisplay(objectData) {
-        if (!objectData) {
-            console.warn('[ObjectDisplay] No object data provided');
-            return;
-        }
-        
-        this.currentObject = objectData;
-        
         try {
-            this.updateBasicInfo(objectData);
-            this.updateImage(objectData);
-            this.updateDescriptions(objectData);
-            this.updateTechnicalInfo(objectData);
-            this.handleTitleLength(objectData.title);
+            console.log('[ObjectDisplayComponent] Updating display with object data');
             
-            console.log('[ObjectDisplay] Display updated successfully');
+            // Handle title length for CSS classes
+            this.updateTitleClasses(objectData.title);
+            
+            // Update basic information
+            this.updateBasicInfo(objectData);
+            
+            // Update image
+            this.updateImage(objectData);
+            
+            // Update links
+            this.updateLinks(objectData);
+            
+            // Update descriptions
+            this.updateDescriptions(objectData);
+            
+            // Update technical information
+            this.updateTechnicalInfo(objectData);
+            
+            // Hide loading state
+            this.hideLoading();
+            
+            console.log('[ObjectDisplayComponent] Display updated successfully');
+            
         } catch (error) {
-            console.error('[ObjectDisplay] Error updating display:', error);
+            console.error('[ObjectDisplayComponent] Error updating display:', error);
+            this.showError('Failed to update display');
+        }
+    }
+    
+    /**
+     * Update title CSS classes based on length
+     */
+    updateTitleClasses(title) {
+        const $title = $("#title");
+        const $pieceDate = $("#piece-date");
+        
+        if (title.length > 42) {
+            $title.addClass("reduced");
+            $pieceDate.addClass("reduced");
+        } else {
+            $title.removeClass("reduced");
+            $pieceDate.removeClass("reduced");
         }
     }
     
@@ -147,80 +165,88 @@ class ObjectDisplayComponent extends BaseComponent {
      * Update basic object information
      */
     updateBasicInfo(objectData) {
-        // Update creator/artist information
-        this.setText(this.elements.creatorName, objectData.artist);
-        this.setText(this.elements.datesAlive, objectData.datesAlive);
-        
-        // Update title and date
-        this.setHTML(this.elements.title, objectData.title);
+        $("#creator-name").text(objectData.artist || '');
+        $("#dates-alive").text(objectData.datesAlive || '');
+        $("#title").html(objectData.title || '');
         
         if (objectData.date && objectData.date !== "") {
-            this.setText(this.elements.pieceDate, `(${objectData.date})`);
+            $("#piece-date").text("(" + objectData.date + ")");
         } else {
-            this.setText(this.elements.pieceDate, '');
+            $("#piece-date").text("");
         }
         
-        // Update place information
-        this.setHTML(this.elements.place, objectData.place);
+        $("#place").html(objectData.place || '');
     }
     
     /**
      * Update object image
      */
     updateImage(objectData) {
-        if (!this.elements.image) return;
-        
         if (objectData.imageUrl && objectData.imageUrl !== "") {
-            // Show loading state
-            this.show(this.elements.loading);
-            this.hide(this.elements.image);
-            
-            // Set image source
-            this.setAttribute(this.elements.image, 'src', objectData.imageUrl);
-            
-            // Update Pinterest URL
-            this.updatePinterestUrl(objectData);
+            $("#image").attr("src", objectData.imageUrl);
         } else {
-            this.showImagePlaceholder();
+            // No image available - show placeholder
+            const $imageContainer = $('.object-image-wrapper');
+            $imageContainer.html(`
+                <div class="image-placeholder">
+                    <p>Image not available</p>
+                    <p><small>This object may not have been photographed yet, or the image may be temporarily unavailable.</small></p>
+                </div>
+            `);
         }
     }
     
     /**
-     * Update Pinterest sharing URL
+     * Update object links
      */
-    updatePinterestUrl(objectData) {
-        const pinterestButton = document.getElementById('pinterest-button');
-        if (!pinterestButton) return;
+    updateLinks(objectData) {
+        // Update page link
+        $("#page-link").attr("href", objectData.objectUrl || '#');
         
-        let pinterestUrl = "https://www.pinterest.com/pin/create/button/";
-        pinterestUrl += "?url=" + encodeURIComponent(objectData.objectUrl);
-        pinterestUrl += "&media=" + encodeURIComponent(objectData.imageUrl);
-        pinterestUrl += "&description=" + encodeURIComponent(objectData.title);
-        
-        if (objectData.date !== "") {
-            pinterestUrl += encodeURIComponent(` (${objectData.place}, ${objectData.date})`);
+        // Update Pinterest URL
+        if (objectData.imageUrl && objectData.title) {
+            let pinterestUrl = "https://www.pinterest.com/pin/create/button/";
+            pinterestUrl += "?url=" + encodeURIComponent(objectData.objectUrl || '');
+            pinterestUrl += "&media=" + encodeURIComponent(objectData.imageUrl);
+            pinterestUrl += "&description=" + encodeURIComponent(objectData.title);
+            
+            if (objectData.date !== "") {
+                pinterestUrl += encodeURIComponent(" (" + objectData.place + ", " + objectData.date + ")");
+            }
+            pinterestUrl += encodeURIComponent(", V%26A Collection");
+            
+            $("#pinterest-button").attr("href", pinterestUrl);
         }
-        pinterestUrl += encodeURIComponent(", V&A Collection");
         
-        this.setAttribute(pinterestButton, 'href', pinterestUrl);
+        // Update Twitter URL
+        if (objectData.title) {
+            let twitterUrl = "https://twitter.com/intent/tweet";
+            twitterUrl += "?text=" + encodeURIComponent(objectData.title);
+            
+            if (objectData.date !== "") {
+                twitterUrl += encodeURIComponent(" (" + objectData.place + ", " + objectData.date + ")");
+            }
+            twitterUrl += encodeURIComponent(", V&A Collection ");
+            twitterUrl += encodeURIComponent(objectData.objectUrl || '');
+            
+            $("#twitter-button").attr("href", twitterUrl);
+        }
     }
     
     /**
      * Update object descriptions
      */
     updateDescriptions(objectData) {
-        // Update main description
         if (objectData.description && objectData.description !== "") {
-            this.setHTML(this.elements.objectDescription, `<p>${objectData.description}</p>`);
+            $("#object-description").html("<p>" + objectData.description + "</p>");
         } else {
-            this.setHTML(this.elements.objectDescription, '<p></p>');
+            $("#object-description").html("");
         }
         
-        // Update context information
         if (objectData.context && objectData.context !== "") {
-            this.setHTML(this.elements.objectContext, `<p>${objectData.context}</p>`);
+            $("#object-context").html("<p>" + objectData.context + "</p>");
         } else {
-            this.setHTML(this.elements.objectContext, '<p></p>');
+            $("#object-context").html("");
         }
     }
     
@@ -228,76 +254,136 @@ class ObjectDisplayComponent extends BaseComponent {
      * Update technical information
      */
     updateTechnicalInfo(objectData) {
-        // Helper function to hide empty sections
-        const hideIfEmpty = (element, value) => {
-            if (!element) return;
-            
-            if (value && value !== "") {
-                this.setText(element, value);
-                $(element).closest('section').show();
-            } else {
-                $(element).closest('section').hide();
-            }
-        };
+        const fields = [
+            { selector: "#physical-description", value: objectData.physicalDescription },
+            { selector: "#tech-info-place", value: objectData.place },
+            { selector: "#tech-info-piece-date", value: objectData.date },
+            { selector: "#tech-info-creator-name", value: objectData.artist },
+            { selector: "#tech-info-materials", value: objectData.materials },
+            { selector: "#dimensions", value: objectData.dimensions },
+            { selector: "#museum-location", value: objectData.museumLocation },
+            { selector: "#museum-number", value: objectData.objectNumber }
+        ];
         
-        // Update technical details
-        hideIfEmpty(this.elements.physicalDescription, objectData.physicalDescription);
-        hideIfEmpty(this.elements.techInfoPlace, objectData.place);
-        hideIfEmpty(this.elements.techInfoPieceDate, objectData.date);
-        hideIfEmpty(this.elements.techInfoCreatorName, objectData.artist);
-        hideIfEmpty(this.elements.techInfoMaterials, objectData.materials);
-        hideIfEmpty(this.elements.dimensions, objectData.dimensions);
-        hideIfEmpty(this.elements.museumLocation, objectData.museumLocation);
-        hideIfEmpty(this.elements.museumNumber, objectData.objectNumber);
+        fields.forEach(field => {
+            if (field.value && field.value !== "") {
+                $(field.selector).text(field.value);
+                $(field.selector).closest('section').show();
+            } else {
+                $(field.selector).closest('section').hide();
+            }
+        });
     }
     
     /**
-     * Handle long titles by adding CSS classes
+     * Clear the display
      */
-    handleTitleLength(title) {
-        if (!title) return;
+    clearDisplay() {
+        console.log('[ObjectDisplayComponent] Clearing display');
         
-        if (title.length > 42) {
-            this.toggleClass(this.elements.title, 'reduced', true);
-            this.toggleClass(this.elements.pieceDate, 'reduced', true);
-        } else {
-            this.toggleClass(this.elements.title, 'reduced', false);
-            this.toggleClass(this.elements.pieceDate, 'reduced', false);
-        }
+        // Clear all text fields
+        $("#creator-name, #dates-alive, #title, #piece-date, #place").text("");
+        
+        // Clear image
+        $("#image").attr("src", "");
+        
+        // Clear descriptions
+        $("#object-description, #object-context").html("");
+        
+        // Hide all technical info sections
+        $("section").hide();
+        
+        // Clear links
+        $("#page-link, #pinterest-button, #twitter-button").attr("href", "#");
     }
     
     /**
      * Show loading state
      */
     showLoading() {
-        this.show(this.elements.loading);
-        this.hide(this.elements.image);
+        console.log('[ObjectDisplayComponent] Showing loading state');
+        
+        // Show loading indicator
+        $('.object-display').addClass('loading');
+        
+        // You could add a loading spinner here if needed
+        // $('.object-display').append('<div class="loading-spinner">Loading...</div>');
     }
     
     /**
      * Hide loading state
      */
     hideLoading() {
-        this.hide(this.elements.loading);
+        console.log('[ObjectDisplayComponent] Hiding loading state');
+        
+        // Hide loading indicator
+        $('.object-display').removeClass('loading');
+        
+        // Remove loading spinner if it exists
+        $('.loading-spinner').remove();
     }
     
     /**
-     * Clear the display
+     * Show error state
      */
-    clear() {
-        this.setText(this.elements.title, '');
-        this.setText(this.elements.pieceDate, '');
-        this.setText(this.elements.creatorName, '');
-        this.setText(this.elements.datesAlive, '');
-        this.setText(this.elements.place, '');
+    showError(error) {
+        console.log('[ObjectDisplayComponent] Showing error:', error);
         
-        this.setHTML(this.elements.objectDescription, '<p></p>');
-        this.setHTML(this.elements.objectContext, '<p></p>');
+        // Show error message
+        $('.object-display').addClass('error');
         
-        this.setAttribute(this.elements.image, 'src', '');
-        this.hide(this.elements.image);
+        // You could add an error message display here
+        // $('.object-display').append(`<div class="error-message">${error}</div>`);
+    }
+    
+    /**
+     * Hide error state
+     */
+    hideError() {
+        console.log('[ObjectDisplayComponent] Hiding error state');
         
-        this.currentObject = null;
+        // Hide error indicator
+        $('.object-display').removeClass('error');
+        
+        // Remove error message if it exists
+        $('.error-message').remove();
+    }
+    
+    /**
+     * Handle image click
+     */
+    handleImageClick(event) {
+        console.log('[ObjectDisplayComponent] Image clicked');
+        
+        // Open image in new tab if it exists
+        const imageUrl = $(event.target).attr('src');
+        if (imageUrl && imageUrl !== '') {
+            window.open(imageUrl, '_blank');
+        }
+    }
+    
+    /**
+     * Handle Pinterest button click
+     */
+    handlePinterestClick(event) {
+        console.log('[ObjectDisplayComponent] Pinterest button clicked');
+        // Pinterest will handle the redirect automatically
+    }
+    
+    /**
+     * Handle Twitter button click
+     */
+    handleTwitterClick(event) {
+        console.log('[ObjectDisplayComponent] Twitter button clicked');
+        // Twitter will handle the redirect automatically
+    }
+    
+    /**
+     * Handle page link click
+     */
+    handlePageLinkClick(event) {
+        console.log('[ObjectDisplayComponent] Page link clicked');
+        // Link will open in new tab automatically
     }
     
     /**
@@ -305,6 +391,28 @@ class ObjectDisplayComponent extends BaseComponent {
      */
     getCurrentObject() {
         return this.currentObject;
+    }
+    
+    /**
+     * Check if currently loading
+     */
+    isLoading() {
+        return this.isLoading;
+    }
+    
+    /**
+     * Get current error
+     */
+    getError() {
+        return this.error;
+    }
+    
+    /**
+     * Handle window resize
+     */
+    handleResize(event) {
+        // Handle responsive behavior if needed
+        console.log('[ObjectDisplayComponent] Window resized');
     }
 }
 
