@@ -602,3 +602,37 @@ body, html {
 
 // HEADER && FOOTER
 // ------------------------------------
+
+// IMAGE PLACEHOLDER STYLES
+.image-placeholder {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	height: 100%;
+	min-height: 300px;
+	text-align: center;
+	padding: 0 88px; // $outerMarginWidth on both sides
+	max-width: 700px; // Match object-header max-width
+	margin: 0 auto;
+	
+	p {
+		margin: 0 0 10px 0;
+		@include regular;
+		line-height: 1.4;
+		
+		&:first-child {
+			@include medium;
+			@include largeText;
+		}
+		
+		&:last-child {
+			margin-bottom: 0;
+		}
+	}
+	
+	small {
+		@include regular;
+		@include smallText;
+	}
+}
