@@ -37,14 +37,102 @@
                 });
             }
             
-            // Choose a search term and start the search process
-            chosenSearchTerm = museumApi.chooseSearchTerm();
-            await makeVaRequest(null, chosenSearchTerm);
+            // Set up keyboard shortcuts
+            setupKeyboardShortcuts();
+            
+            // Use the new random object method for better randomization
+            await getRandomObject();
             
         } catch (error) {
             console.error("Failed to initialize museum API:", error);
             SITE.throwError();
         }
+    }
+    
+    /**
+     * Set up keyboard shortcuts
+     */
+    function setupKeyboardShortcuts() {
+        document.addEventListener('keydown', function(event) {
+            // Spacebar to get new random object
+            if (event.code === 'Space' && !event.target.matches('input, textarea, select')) {
+                event.preventDefault();
+                console.log('Spacebar pressed - getting new random object');
+                getRandomObject();
+            }
+        });
+        
+        // Add click handler to image area for new random object
+        document.addEventListener('click', function(event) {
+            // Check if click is on the image area (but not on buttons or links)
+            if (event.target.closest('.object-image-wrapper') && 
+                !event.target.closest('.share-icons') && 
+                !event.target.closest('a') && 
+                !event.target.closest('button')) {
+                console.log('Image area clicked - getting new random object');
+                getRandomObject();
+            }
+        });
+        
+        console.log('Keyboard shortcuts enabled: Press SPACEBAR for new random object');
+        console.log('Click on image area for new random object');
+    }
+    
+    /**
+     * Global function to get a new random object (can be called from other components)
+     */
+    window.getNewRandomObject = function() {
+        console.log('getNewRandomObject called');
+        getRandomObject();
+    };
+    
+    /**
+     * Get a random object using the new efficient method
+     */
+    async function getRandomObject() {
+        try {
+            console.log("Getting random object using V&A API randomization...");
+            
+            // Use the new getRandomObject method
+            const data = await museumApi.getRandomObject();
+            
+            // Process the response directly (no need for expectResponse logic)
+            await processRandomObjectResponse(data);
+            
+        } catch (error) {
+            console.error("Random object request failed:", error);
+            
+            if (museumApi.hasExceededMaxAttempts()) {
+                console.log("maximum number of search attempts reached, try changing search terms");
+                SITE.throwError();
+            } else {
+                // Retry with a different random object
+                await getRandomObject();
+            }
+        }
+    }
+    
+    /**
+     * Process random object response
+     */
+    async function processRandomObjectResponse(data) {
+        console.log("Processing random object response:", data);
+        
+        // Process individual object data
+        if (!data.records || data.records.length === 0) {
+            console.log("No random object found, trying again");
+            await getRandomObject();
+            return;
+        }
+        
+        // Process the object data using the abstraction layer
+        const objectData = museumApi.processObjectData(data);
+        
+        // Update the UI with the processed data
+        updateUI(objectData);
+        
+        // Save to history
+        saveToHistory(objectData);
     }
     
     /**

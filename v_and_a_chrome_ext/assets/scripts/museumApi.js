@@ -131,7 +131,13 @@
                 "Architecture", "Asia", "British Galleries", "Ceramics", "Childhood", 
                 "Contemporary", "Fashion", "Jewellery", "Furniture", "Glass", 
                 "Metalwork", "Paintings", "Drawings", "Photography", "Prints", 
-                "Books", "Sculpture", "Textiles", "Theatre"
+                "Books", "Sculpture", "Textiles", "Theatre", "Medieval", "Renaissance",
+                "Baroque", "Rococo", "Neoclassical", "Victorian", "Art Nouveau", 
+                "Art Deco", "Modernism", "Postmodern", "Islamic", "Chinese", "Japanese",
+                "Indian", "African", "American", "European", "Ancient", "Classical",
+                "Gothic", "Romanesque", "Byzantine", "Ottoman", "Mughal", "Persian",
+                "Egyptian", "Greek", "Roman", "Celtic", "Viking", "Prehistoric",
+                "Bronze Age", "Iron Age", "Early Modern", "Industrial Revolution"
             ];
             this.searchTerms = this.defaultSearchTerms;
             this.strictSearch = false;
@@ -221,6 +227,53 @@
                         } else {
                             console.log("API request failed:", response ? response.error : "No response");
                             reject(new Error(response ? response.error : "API request failed"));
+                        }
+                    });
+                } else {
+                    console.log("Running as standalone page - API requests will fail due to CORS");
+                    reject(new Error("CORS not supported in standalone mode"));
+                }
+            });
+        }
+        
+        /**
+         * Get a random object using V&A API's built-in randomization
+         * This is more efficient than the two-step process
+         */
+        async getRandomObject() {
+            this.incrementSearchCount();
+            
+            if (this.hasExceededMaxAttempts()) {
+                throw new Error("Maximum number of search attempts reached");
+            }
+            
+            // Choose a random search term
+            const searchTerm = this.chooseSearchTerm();
+            console.log("Getting random object for search term:", searchTerm);
+            
+            return new Promise((resolve, reject) => {
+                if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) {
+                    console.log("Sending random object request to background script...");
+                    chrome.runtime.sendMessage({
+                        action: 'makeVaRequest',
+                        params: {
+                            searchTerm: searchTerm,
+                            offset: null,
+                            limit: "1",
+                            withImages: "1",
+                            withDescription: "1",
+                            after: null,
+                            random: "1", // Use V&A API's random ordering
+                            hasImage: "1"
+                        }
+                    }, (response) => {
+                        console.log("Received random object response:", response);
+                        if (response && response.success) {
+                            console.log("Random object request successful");
+                            resolve(response.data);
+                        } else {
+                            console.log("Random object request failed:", response ? response.error : "No response");
+                            reject(new Error(response ? response.error : "Random object request failed"));
                         }
                     });
                 } else {

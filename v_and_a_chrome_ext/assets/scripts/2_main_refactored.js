@@ -6,7 +6,7 @@
  * component-based architecture.
  */
 
-(function(window, $, Modernizr, screenfull, FastClick) {
+(function(window, $, Modernizr) {
     'use strict';
     
     var pumkin = window.pumkin;
@@ -113,13 +113,12 @@
     }
     
     /**
-     * Initialize FastClick for mobile
+     * Initialize FastClick for mobile (if available)
      */
     function initFastclick() {
-        if (typeof FastClick !== 'undefined') {
-            FastClick.attach(document.body);
-            console.log('FastClick initialized');
-        }
+        // FastClick is not available in this build, so we'll skip it
+        // The component system will handle touch events appropriately
+        console.log('FastClick not available - using native touch handling');
     }
     
     /**
@@ -283,4 +282,4 @@
         initMain();
     }
     
-})(window, jQuery, Modernizr, screenfull, FastClick); 
+})(window, jQuery, Modernizr); 

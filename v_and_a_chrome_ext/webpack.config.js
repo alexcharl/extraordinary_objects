@@ -11,6 +11,8 @@ module.exports = (env, argv) => {
         './assets/scripts/1_global.js', 
         './assets/scripts/2_main_refactored.js',  // Use refactored main
         './assets/scripts/museumApi.js',  // Add the new museum API abstraction
+        // Error handling system
+        './assets/scripts/error/ErrorHandler.js',
         // State management system
         './assets/scripts/state/AppState.js',
         './assets/scripts/state/actions.js',

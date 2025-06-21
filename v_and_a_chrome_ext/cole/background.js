@@ -42,6 +42,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       queryParams.set('has_image', hasImage);
     }
     
+    // Add random parameter if specified
+    if (random && random !== "0") {
+      queryParams.set('random', random);
+      console.log('Using V&A API random ordering');
+    }
+    
     const url = `https://api.vam.ac.uk/v2/objects/search?${queryParams.toString()}`;
     console.log('API URL:', url);
     
