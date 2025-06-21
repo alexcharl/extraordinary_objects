@@ -110,7 +110,7 @@
 		});
 
 		$downArrow.click(function() {
-			$('.object-text').velocity('scroll', {
+			$('#object-description').velocity('scroll', {
 	            duration: 700,
 	            offset: -100,
 	            easing: 'ease-in-out',
