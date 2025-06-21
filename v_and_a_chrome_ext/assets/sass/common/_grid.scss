@@ -1,3 +1,5 @@
+@use "sass:math";
+
 /*-----------------------------------*\
 
   $TOAST-GRID
@@ -66,38 +68,38 @@ $toast-pulls: true !default;
   margin-left: -$toast-gutter-width;
 }
 
-%span-all       { width: percentage(1/1); }
+%span-all       { width: math.percentage(math.div(1, 1)); }
 
-%one-half       { width: percentage(1/2); }
+%one-half       { width: math.percentage(math.div(1, 2)); }
 
-%one-third      { width: percentage(1/3); }
-%two-thirds     { width: percentage(2/3); }
+%one-third      { width: math.percentage(math.div(1, 3)); }
+%two-thirds     { width: math.percentage(math.div(2, 3)); }
 
-%one-quarter    { width: percentage(1/4); }
-%two-quarters   { width: percentage(2/4); }
-%three-quarters { width: percentage(3/4); }
+%one-quarter    { width: math.percentage(math.div(1, 4)); }
+%two-quarters   { width: math.percentage(math.div(2, 4)); }
+%three-quarters { width: math.percentage(math.div(3, 4)); }
 
-%push-span-all       { margin-left: percentage(1/1); }
+%push-span-all       { margin-left: math.percentage(math.div(1, 1)); }
 
-%push-one-half       { margin-left: percentage(1/2); }
+%push-one-half       { margin-left: math.percentage(math.div(1, 2)); }
 
-%push-one-third      { margin-left: percentage(1/3); }
-%push-two-thirds     { margin-left: percentage(2/3); }
+%push-one-third      { margin-left: math.percentage(math.div(1, 3)); }
+%push-two-thirds     { margin-left: math.percentage(math.div(2, 3)); }
 
-%push-one-quarter    { margin-left: percentage(1/4); }
-%push-two-quarters   { margin-left: percentage(2/4); }
-%push-three-quarters { margin-left: percentage(3/4); }
+%push-one-quarter    { margin-left: math.percentage(math.div(1, 4)); }
+%push-two-quarters   { margin-left: math.percentage(math.div(2, 4)); }
+%push-three-quarters { margin-left: math.percentage(math.div(3, 4)); }
 
-%pull-span-all       { margin-left: -(percentage(1/1)); }
+%pull-span-all       { margin-left: -(math.percentage(math.div(1, 1))); }
 
-%pull-one-half       { margin-left: -(percentage(1/2)); }
+%pull-one-half       { margin-left: -(math.percentage(math.div(1, 2))); }
 
-%pull-one-third      { margin-left: -(percentage(1/3)); }
-%pull-two-thirds     { margin-left: -(percentage(2/3)); }
+%pull-one-third      { margin-left: -(math.percentage(math.div(1, 3))); }
+%pull-two-thirds     { margin-left: -(math.percentage(math.div(2, 3))); }
 
-%pull-one-quarter    { margin-left: -(percentage(1/4)); }
-%pull-two-quarters   { margin-left: -(percentage(2/4)); }
-%pull-three-quarters { margin-left: -(percentage(3/4)); }
+%pull-one-quarter    { margin-left: -(math.percentage(math.div(1, 4))); }
+%pull-two-quarters   { margin-left: -(math.percentage(math.div(2, 4))); }
+%pull-three-quarters { margin-left: -(math.percentage(math.div(3, 4))); }
 
 // For each of our column groups...
 @each $group in $toast-col-groups {
@@ -105,46 +107,46 @@ $toast-pulls: true !default;
   // For each column width from 1 to the column group...
   @for $i from 1 through $group {
     .#{$toast-grid-column-namespace}--#{$i}-of-#{$group} {
-      @if percentage($i/$group) == percentage(1/1) {
+      @if math.percentage(math.div($i, $group)) == math.percentage(math.div(1, 1)) {
         @extend %span-all;
-      } @else if percentage($i/$group) == percentage(1/2) {
+      } @else if math.percentage(math.div($i, $group)) == math.percentage(math.div(1, 2)) {
         @extend %one-half;
-      } @else if percentage($i/$group) == percentage(1/3) {
+      } @else if math.percentage(math.div($i, $group)) == math.percentage(math.div(1, 3)) {
         @extend %one-third;
-      } @else if percentage($i/$group) == percentage(2/3) {
+      } @else if math.percentage(math.div($i, $group)) == math.percentage(math.div(2, 3)) {
         @extend %two-thirds;
-      } @else if percentage($i/$group) == percentage(1/4) {
+      } @else if math.percentage(math.div($i, $group)) == math.percentage(math.div(1, 4)) {
         @extend %one-quarter;
-      } @else if percentage($i/$group) == percentage(2/4) {
+      } @else if math.percentage(math.div($i, $group)) == math.percentage(math.div(2, 4)) {
         @extend %two-quarters;
-      } @else if percentage($i/$group) == percentage(3/4) {
+      } @else if math.percentage(math.div($i, $group)) == math.percentage(math.div(3, 4)) {
         @extend %three-quarters;
       } @else {
 
-        width: percentage($i/$group);
+        width: math.percentage(math.div($i, $group));
 
       }
     }
 
     @if ($toast-pushes) {
       .#{$toast-grid-column-namespace}--push-#{$i}-of-#{$group} {
-        @if percentage($i/$group) == percentage(1/1) {
+        @if math.percentage(math.div($i, $group)) == math.percentage(math.div(1, 1)) {
           @extend %push-span-all;
-        } @else if percentage($i/$group) == percentage(1/2) {
+        } @else if math.percentage(math.div($i, $group)) == math.percentage(math.div(1, 2)) {
           @extend %push-one-half;
-        } @else if percentage($i/$group) == percentage(1/3) {
+        } @else if math.percentage(math.div($i, $group)) == math.percentage(math.div(1, 3)) {
           @extend %push-one-third;
-        } @else if percentage($i/$group) == percentage(2/3) {
+        } @else if math.percentage(math.div($i, $group)) == math.percentage(math.div(2, 3)) {
           @extend %push-two-thirds;
-        } @else if percentage($i/$group) == percentage(1/4) {
+        } @else if math.percentage(math.div($i, $group)) == math.percentage(math.div(1, 4)) {
           @extend %push-one-quarter;
-        } @else if percentage($i/$group) == percentage(2/4) {
+        } @else if math.percentage(math.div($i, $group)) == math.percentage(math.div(2, 4)) {
           @extend %push-two-quarters;
-        } @else if percentage($i/$group) == percentage(3/4) {
+        } @else if math.percentage(math.div($i, $group)) == math.percentage(math.div(3, 4)) {
           @extend %push-three-quarters;
         } @else {
 
-          margin-left: percentage($i/$group);
+          margin-left: math.percentage(math.div($i, $group));
 
         }
       }
@@ -153,23 +155,23 @@ $toast-pulls: true !default;
     @if ($toast-pulls) {
       .#{$toast-grid-column-namespace}--pull-#{$i}-of-#{$group} {
 
-        @if percentage($i/$group) == percentage(1/1) {
+        @if math.percentage(math.div($i, $group)) == math.percentage(math.div(1, 1)) {
           @extend %pull-span-all;
-        } @else if percentage($i/$group) == percentage(1/2) {
+        } @else if math.percentage(math.div($i, $group)) == math.percentage(math.div(1, 2)) {
           @extend %pull-one-half;
-        } @else if percentage($i/$group) == percentage(1/3) {
+        } @else if math.percentage(math.div($i, $group)) == math.percentage(math.div(1, 3)) {
           @extend %pull-one-third;
-        } @else if percentage($i/$group) == percentage(2/3) {
+        } @else if math.percentage(math.div($i, $group)) == math.percentage(math.div(2, 3)) {
           @extend %pull-two-thirds;
-        } @else if percentage($i/$group) == percentage(1/4) {
+        } @else if math.percentage(math.div($i, $group)) == math.percentage(math.div(1, 4)) {
           @extend %pull-one-quarter;
-        } @else if percentage($i/$group) == percentage(2/4) {
+        } @else if math.percentage(math.div($i, $group)) == math.percentage(math.div(2, 4)) {
           @extend %pull-two-quarters;
-        } @else if percentage($i/$group) == percentage(3/4) {
+        } @else if math.percentage(math.div($i, $group)) == math.percentage(math.div(3, 4)) {
           @extend %pull-three-quarters;
         } @else {
 
-          margin-left: -(percentage($i/$group));
+          margin-left: -(math.percentage(math.div($i, $group)));
 
         }
       }
@@ -202,19 +204,19 @@ $toast-pulls: true !default;
     }
 
     &.#{$toast-grid-column-namespace}--m-1-of-2 {
-      width: percentage(1/2);
+      width: math.percentage(math.div(1, 2));
     }
 
     &.#{$toast-grid-column-namespace}--m-1-of-3 {
-      width: percentage(1/3);
+      width: math.percentage(math.div(1, 3));
     }
 
     &.#{$toast-grid-column-namespace}--m-2-of-3 {
-      width: percentage(2/3);
+      width: math.percentage(math.div(2, 3));
     }
 
     &.#{$toast-grid-column-namespace}--m-1-of-4 {
-      width: percentage(1/4);
+      width: math.percentage(math.div(1, 4));
     }
 
     &.#{$toast-grid-column-namespace}--m-2-of-4 {
@@ -222,7 +224,7 @@ $toast-pulls: true !default;
     }
 
     &.#{$toast-grid-column-namespace}--m-3-of-4 {
-      width: percentage(3/4);
+      width: math.percentage(math.div(3, 4));
     }
   }
 
@@ -233,19 +235,19 @@ $toast-pulls: true !default;
     }
 
     &.#{$toast-grid-column-namespace}--s-1-of-2 {
-      width: percentage(1/2);
+      width: math.percentage(math.div(1, 2));
     }
 
     &.#{$toast-grid-column-namespace}--s-1-of-3 {
-      width: percentage(1/3);
+      width: math.percentage(math.div(1, 3));
     }
 
     &.#{$toast-grid-column-namespace}--s-2-of-3 {
-      width: percentage(2/3);
+      width: math.percentage(math.div(2, 3));
     }
 
     &.#{$toast-grid-column-namespace}--s-1-of-4 {
-      width: percentage(1/4);
+      width: math.percentage(math.div(1, 4));
     }
 
     &.#{$toast-grid-column-namespace}--s-2-of-4 {
@@ -253,7 +255,7 @@ $toast-pulls: true !default;
     }
 
     &.#{$toast-grid-column-namespace}--s-3-of-4 {
-      width: percentage(3/4);
+      width: math.percentage(math.div(3, 4));
     }
   }
 }

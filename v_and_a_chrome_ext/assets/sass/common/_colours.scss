@@ -1,7 +1,9 @@
+@use "sass:math";
+
 // Colours
 // Mixin to output gray from black percentage
 @function black-percent ( $percent ) {
-	@return rgb( (255 - (255 * ( $percent / 100 ))), (255 - (255 * ( $percent / 100 ))), (255 - (255 * ( $percent / 100 ))) );
+	@return rgb( (255 - (255 * math.div($percent, 100))), (255 - (255 * math.div($percent, 100))), (255 - (255 * math.div($percent, 100))) );
 }
 
 $black: rgb(37,37,37);

@@ -1,3 +1,5 @@
+@use "colours" as *;
+
 // Pumkin Generic Mixins
 // Reusable styles and variables
 
@@ -92,19 +94,17 @@
   position: $position;
   
   @if $type == "horizontal" {
-    @include translateX(-50% + $offsetLeft);
     left: 50%;
+    transform: translateX(calc(-50% + #{$offsetLeft}));
   }
-  
   @else if $type == "vertical" {
-    @include translateY(-50% + $offsetTop);
     top: 50%;
+    transform: translateY(calc(-50% + #{$offsetTop}));
   }
-  
   @else {
-    @include translate(-50% + $offsetLeft, -50% + $offsetTop);
     top: 50%;
     left: 50%;
+    transform: translate(calc(-50% + #{$offsetLeft}), calc(-50% + #{$offsetTop}));
   }
 }
 

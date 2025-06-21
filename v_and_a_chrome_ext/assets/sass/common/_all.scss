@@ -1,12 +1,12 @@
 // Collect all common files
 
-@import "compass/css3";
-@import "reset";
-@import "mediaMixins";
-@import "grid";
-@import "colours";
-@import "reusable";
-@import "type";
-@import "icons";
-@import "breakpoints";
-@import "deviceTester";
+@use "colours" as *;
+@forward "reset";
+@forward "mediaMixins";
+@forward "grid";
+@forward "colours";
+@forward "reusable";
+@forward "type";
+@forward "icons";
+@forward "breakpoints";
+@forward "deviceTester";

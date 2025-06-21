@@ -1,5 +1,5 @@
 // Main stylesheet
 
-@import "common/all";
-@import "pages/global";
-@import "common/deviceTester";
+@use "common/all";
+@use "pages/global";
+@use "common/deviceTester";

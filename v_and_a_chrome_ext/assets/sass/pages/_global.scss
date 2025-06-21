@@ -1,7 +1,11 @@
+@use "../common/colours" as *;
+@use "../common/reusable" as *;
+@use "../common/type" as type;
+
 @include css-select ($white,$black);
 
 * {
-	@include box-sizing (border-box);
+	box-sizing: border-box;
     -webkit-tap-highlight-color: rgba(0,0,0,0);
     outline: 0;
     -webkit-text-size-adjust: 100%;
@@ -228,7 +232,7 @@ body, html {
 }
 
 .object-caption {
-	@include smallText;
+	@include type.smallText;
     opacity: 0;
     @include animate(500ms);
     height: 52px;
@@ -618,12 +622,12 @@ body, html {
 	
 	p {
 		margin: 0 0 10px 0;
-		@include regular;
+		@include type.regular;
 		line-height: 1.4;
 		
 		&:first-child {
-			@include medium;
-			@include largeText;
+			@include type.medium;
+			@include type.largeText;
 		}
 		
 		&:last-child {
@@ -632,7 +636,7 @@ body, html {
 	}
 	
 	small {
-		@include regular;
-		@include smallText;
+		@include type.regular;
+		@include type.smallText;
 	}
 }

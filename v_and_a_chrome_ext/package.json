@@ -1,15 +1,31 @@
 {
-  "name": "local_node_setup",
-  "version": "0.0.1",
-  "private": false,
+  "name": "v-and-a-chrome-extension",
+  "version": "0.9.2",
+  "description": "Discover objects from the Victoria and Albert museum's collection every time you open a new tab",
+  "private": true,
+  "scripts": {
+    "dev": "webpack --mode development --watch",
+    "build": "webpack --mode production",
+    "build:dev": "webpack --mode development",
+    "build:plugins": "node build-plugins.js",
+    "sass:dev": "sass assets/sass/main.scss:cole/css/max/main.css --watch --style=expanded --source-map",
+    "sass:build": "sass assets/sass/main.scss:cole/css/min/main.css --style=compressed",
+    "start": "npm run build:plugins && npm run sass:dev & npm run dev"
+  },
   "dependencies": {
-    "grunt": "^1.0.4",
-    "grunt-browser-sync": "*",
-    "grunt-contrib-compass": "~1.1.1",
-    "grunt-contrib-uglify": "latest",
-    "grunt-contrib-watch": "latest"
+    "jquery": "^3.6.0"
   },
   "devDependencies": {
-    "grunt-contrib-compass": "^1.1.1"
+    "webpack": "^5.88.0",
+    "webpack-cli": "^5.1.0",
+    "sass": "^1.63.0",
+    "css-loader": "^6.8.0",
+    "style-loader": "^3.3.0",
+    "sass-loader": "^13.3.0",
+    "copy-webpack-plugin": "^11.0.0",
+    "webpack-merge": "^5.9.0",
+    "@babel/core": "^7.22.0",
+    "@babel/preset-env": "^7.22.0",
+    "babel-loader": "^9.1.0"
   }
 }

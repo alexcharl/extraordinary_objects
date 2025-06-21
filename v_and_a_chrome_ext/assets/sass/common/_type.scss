@@ -1,3 +1,6 @@
+@use "sass:math";
+@use "colours" as *;
+
 @font-face {
 	font-family:"Untitled Sans Regular";
 	src:url("../../fonts/UntitledSans-Regular.woff") format("woff"),
@@ -21,7 +24,7 @@
 
 // allows use of pixel values for letter spacing
 @mixin letter-spacing ($value) {
-	letter-spacing: ($value / 1000)+em;
+	letter-spacing: math.div($value, 1000) + em;
 }
 
 @mixin italic {
@@ -47,7 +50,7 @@
 	// }
 
 @function em($px, $base: $baseFontSize) {
-    @return ($px / $base) * 1em;
+    @return math.div($px, $base) * 1em;
 }
 
 // -------------------------------------------------------
