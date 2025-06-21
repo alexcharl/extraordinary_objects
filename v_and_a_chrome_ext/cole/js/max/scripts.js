@@ -217,6 +217,10 @@ var pumkin = window.pumkin = {};
     var isTouch = null;
     var browser;
     var $wrapper;
+    var theHistory = [];
+    var maxHistoryItems = 10;
+    window.theHistory = theHistory;
+    window.maxHistoryItems = maxHistoryItems;
     function defineVars() {
         var gv = window.gv;
         $window = gv.$window;
@@ -243,6 +247,15 @@ var pumkin = window.pumkin = {};
     }
     function initMain() {
         defineVars();
+        if (typeof chrome !== "undefined" && typeof chrome.storage !== "undefined") {
+            chrome.storage.local.get([ "objectHistory" ], function(result) {
+                if (result.objectHistory) {
+                    theHistory = result.objectHistory;
+                    window.theHistory = theHistory;
+                    console.log("Loaded history from storage:", theHistory.length, "items");
+                }
+            });
+        }
         initFastclick();
         handleClicks();
         onResize();
@@ -307,7 +320,12 @@ var pumkin = window.pumkin = {};
     }
     function getHistory() {
         var count = 0;
-        theHistory.forEach(function(i) {
+        var history = window.theHistory || theHistory || [];
+        if (!history || history.length === 0) {
+            $("#history-objects").html('<p class="no-history">No objects viewed yet. Start exploring the V&A collection!</p>');
+            return;
+        }
+        history.forEach(function(i) {
             var historyObjectHTML = "";
             historyObjectHTML += '<a class="history-object hide-until-loaded" data-object-number="' + i.objectNumber + '" href="' + i.vaCollectionsUrl + '"';
             historyObjectHTML += 'title="View this item in the V&amp;A archive">';
@@ -319,7 +337,7 @@ var pumkin = window.pumkin = {};
             historyObjectHTML += "<p><strong>" + i.title + "</strong>, " + i.date + "</p>";
             historyObjectHTML += "<p>" + i.artist + "</p>";
             historyObjectHTML += "</div>";
-            historyObjectHTML += "</a";
+            historyObjectHTML += "</a>";
             $("#history-objects").append(historyObjectHTML);
             $("#image-holder-" + count).on("load", function() {
                 $(this).parent().addClass("loaded");
@@ -673,6 +691,30 @@ var pumkin = window.pumkin = {};
         $("img.image-hide-until-loaded").load(function() {
             $(".image-hide-until-loaded, .hide-after-loaded").addClass("loaded");
         });
+        if (expectResponse !== 0 && expectResponse !== 1) {
+            var historyObject = {
+                objectNumber: theSystemNumber,
+                vaCollectionsUrl: objectUrl,
+                imageUrl: imgUrl,
+                title: theTitle,
+                date: theDate,
+                artist: theArtist,
+                systemNumber: theSystemNumber
+            };
+            var history = window.theHistory || [];
+            history.push(historyObject);
+            if (history.length > (window.maxHistoryItems || 10)) {
+                history.shift();
+            }
+            window.theHistory = history;
+            if (typeof chrome !== "undefined" && typeof chrome.storage !== "undefined") {
+                chrome.storage.local.set({
+                    objectHistory: history
+                }, function() {
+                    console.log("History saved to storage:", history.length, "items");
+                });
+            }
+        }
     }
     SITE.start = start;
     SITE.makeVaRequest = makeVaRequest;

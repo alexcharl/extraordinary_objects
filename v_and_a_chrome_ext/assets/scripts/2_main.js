@@ -16,6 +16,13 @@
 	var browser;
 	var $wrapper;
 
+	// HISTORY
+	var theHistory = [];
+	var maxHistoryItems = 10;
+	
+	// Make theHistory globally accessible
+	window.theHistory = theHistory;
+	window.maxHistoryItems = maxHistoryItems;
 
 	// SPECIFIC TO HERE
 	
@@ -56,6 +63,17 @@
 	function initMain () {
 
 		defineVars();
+
+		// Load history from Chrome storage
+		if (typeof chrome !== 'undefined' && typeof chrome.storage !== 'undefined') {
+			chrome.storage.local.get(['objectHistory'], function(result) {
+				if (result.objectHistory) {
+					theHistory = result.objectHistory;
+					window.theHistory = theHistory; // Update global reference
+					console.log('Loaded history from storage:', theHistory.length, 'items');
+				}
+			});
+		}
 
 		initFastclick();
 
@@ -149,35 +167,32 @@
 	}
 
 	function getHistory() {
-
 		// *** Populate the History page *** //
-
 		var count = 0;
-
-		theHistory.forEach(function (i) {
-  
-		    var historyObjectHTML = '';
-		    historyObjectHTML += '<a class="history-object hide-until-loaded" data-object-number="'+i.objectNumber+'" href="'+i.vaCollectionsUrl+'"';
-		    historyObjectHTML += 'title="View this item in the V&amp;A archive">';
-		    historyObjectHTML += '<div class="history-object-image-holder" '
-		    historyObjectHTML += 'style="background-image: url(\''+i.imageUrl+'\');">';
-		    historyObjectHTML += '</div>';
-		    historyObjectHTML += '<img src="'+i.imageUrl+'" class="image-holder-for-loading" id="image-holder-'+count+'" >';
-		    historyObjectHTML += '<div class="history-object-info">';
-		    historyObjectHTML += '<p><strong>'+i.title+'</strong>, '+i.date+'</p>';
-		    historyObjectHTML += '<p>'+i.artist+'</p>';
-		    historyObjectHTML += '</div>';
-		    historyObjectHTML += '</a';
-
-		    $('#history-objects').append(historyObjectHTML);
-
-		    // set up load detect
-		    $('#image-holder-'+count).on('load', function() {
-		       $(this).parent().addClass('loaded');
-		       $(this).remove(); // prevent memory leaks
-		    });
-
-		    count++;
+		var history = window.theHistory || theHistory || [];
+		if (!history || history.length === 0) {
+			$('#history-objects').html('<p class="no-history">No objects viewed yet. Start exploring the V&A collection!</p>');
+			return;
+		}
+		history.forEach(function (i) {
+			var historyObjectHTML = '';
+			historyObjectHTML += '<a class="history-object hide-until-loaded" data-object-number="'+i.objectNumber+'" href="'+i.vaCollectionsUrl+'"';
+			historyObjectHTML += 'title="View this item in the V&amp;A archive">';
+			historyObjectHTML += '<div class="history-object-image-holder" '
+			historyObjectHTML += 'style="background-image: url(\''+i.imageUrl+'\');">';
+			historyObjectHTML += '</div>';
+			historyObjectHTML += '<img src="'+i.imageUrl+'" class="image-holder-for-loading" id="image-holder-'+count+'" >';
+			historyObjectHTML += '<div class="history-object-info">';
+			historyObjectHTML += '<p><strong>'+i.title+'</strong>, '+i.date+'</p>';
+			historyObjectHTML += '<p>'+i.artist+'</p>';
+			historyObjectHTML += '</div>';
+			historyObjectHTML += '</a>';
+			$('#history-objects').append(historyObjectHTML);
+			$('#image-holder-'+count).on('load', function() {
+			   $(this).parent().addClass('loaded');
+			   $(this).remove(); // prevent memory leaks
+			});
+			count++;
 		});
 	}
 	

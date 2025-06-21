@@ -341,6 +341,30 @@
 		$("img.image-hide-until-loaded").load(function() {
 			$(".image-hide-until-loaded, .hide-after-loaded").addClass("loaded");
 		});
+
+		// Save object to history and persist
+		if (expectResponse !== 0 && expectResponse !== 1) {
+			var historyObject = {
+				objectNumber: theSystemNumber,
+				vaCollectionsUrl: objectUrl,
+				imageUrl: imgUrl,
+				title: theTitle,
+				date: theDate,
+				artist: theArtist,
+				systemNumber: theSystemNumber
+			};
+			var history = window.theHistory || [];
+			history.push(historyObject);
+			if (history.length > (window.maxHistoryItems || 10)) {
+				history.shift();
+			}
+			window.theHistory = history; // Update global reference
+			if (typeof chrome !== 'undefined' && typeof chrome.storage !== 'undefined') {
+				chrome.storage.local.set({objectHistory: history}, function() {
+					console.log('History saved to storage:', history.length, 'items');
+				});
+			}
+		}
 	}
 
 	// EXPORT
