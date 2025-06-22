@@ -11,8 +11,8 @@ module.exports = (env, argv) => {
       'scripts': [
         './src/main.js'
       ],
-      // Plugins - separate bundle as in Grunt
-      'plugins': './assets/plugins/index.js',
+      // Plugins - now using new location
+      'plugins': './src/plugins/index.js',
       // CSS compilation - temporarily disabled for testing
       // 'main': './assets/sass/main.scss'
     },
