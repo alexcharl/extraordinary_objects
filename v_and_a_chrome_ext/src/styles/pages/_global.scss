@@ -99,7 +99,7 @@ body, html {
 	background-size: contain;
 	background-position: 50% 50%;
 	background-repeat: no-repeat;
-	background-image:url(../../gfx/close.svg);
+	background-image:url(../../cole/gfx/close.svg);
 	z-index: 10;
 }
 
@@ -275,35 +275,35 @@ body, html {
 	@include animate(500ms);
 
 	&.pinterest {
-		background-image:url(../../gfx/pinterest.svg);
+		background-image:url(../../cole/gfx/pinterest.svg);
 
 		&:hover {
 			transform: scale(1.1);
 		}
 	}
 	&.twitter {
-		background-image:url(../../gfx/twitter.svg);
+		background-image:url(../../cole/gfx/twitter.svg);
 
 		&:hover {
 			transform: scale(1.1);
 		}
 	}
 	&.original-link {
-		background-image:url(../../gfx/link.svg);
+		background-image:url(../../cole/gfx/link.svg);
 
 		&:hover {
 			transform: scale(1.1);
 		}
 	}
 	&.settings {
-		background-image:url(../../gfx/settings.svg);
+		background-image:url(../../cole/gfx/settings.svg);
 		opacity: 0.25;
 	}
 	&.history {
-		background-image:url(../../gfx/history.svg);
+		background-image:url(../../cole/gfx/history.svg);
 	}
 	&.more {
-		background-image:url(../../gfx/more.svg);
+		background-image:url(../../cole/gfx/more.svg);
 	}
 }
 
@@ -378,7 +378,7 @@ body, html {
 .down-arrow {
 	width:22px;
 	height:40px;
-	background-image:url(../../gfx/chevron.svg);
+	background-image:url(../../cole/gfx/chevron.svg);
 	background-size: contain;
 	background-position: 50% 50%;
 	background-repeat: no-repeat;

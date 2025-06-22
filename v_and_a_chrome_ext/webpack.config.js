@@ -13,8 +13,8 @@ module.exports = (env, argv) => {
       ],
       // Plugins - now using new location
       'plugins': './src/plugins/index.js',
-      // CSS compilation - temporarily disabled for testing
-      // 'main': './assets/sass/main.scss'
+      // CSS compilation - now using new location
+      'main': './src/styles/main.scss'
     },
     
     output: {

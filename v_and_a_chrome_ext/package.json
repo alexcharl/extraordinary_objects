@@ -6,19 +6,10 @@
   "scripts": {
     "build": "webpack --mode production",
     "build:dev": "webpack --mode development",
-    "watch": "webpack --mode development --watch",
-    "grunt:build": "grunt c",
-    "grunt:watch": "grunt"
+    "watch": "webpack --mode development --watch"
   },
-  "dependencies": {
-    "grunt": "^1.0.4",
-    "grunt-browser-sync": "*",
-    "grunt-contrib-compass": "~1.1.1",
-    "grunt-contrib-uglify": "latest",
-    "grunt-contrib-watch": "latest"
-  },
+  "dependencies": {},
   "devDependencies": {
-    "grunt-contrib-compass": "^1.1.1",
     "webpack": "^5.99.9",
     "webpack-cli": "^5.1.4",
     "babel-loader": "^9.1.3",
