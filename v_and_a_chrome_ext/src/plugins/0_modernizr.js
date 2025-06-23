@@ -194,7 +194,7 @@ window.Modernizr = function(a, b, c) {
             createDocumentFragment: p
         };
         a.html5 = s, r(b)
-    }(this, b), e._version = d, e._prefixes = m, e._domPrefixes = p, e._cssomPrefixes = o, e.testProp = function(a) {
+    }(window, document), e._version = d, e._prefixes = m, e._domPrefixes = p, e._cssomPrefixes = o, e.testProp = function(a) {
         return D([a])
     }, e.testAllProps = F, e.testStyles = w, g.className = g.className.replace(/(^|\s)no-js(\s|$)/, "$1$2") + (f ? " js " + t.join(" ") : ""), e
-}(this, this.document);
+}(window, document);

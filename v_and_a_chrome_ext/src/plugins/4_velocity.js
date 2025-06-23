@@ -2169,10 +2169,8 @@
 
 						/* For absolute positioning, jQuery's $.position() only returns values for top and left;
 						 right and bottom will have their "auto" value reverted to 0. */
-						/* Note: A jQuery object must be created here since jQuery doesn't have a low-level alias for $.position().
-						 Not a big deal since we're currently in a GET batch anyway. */
+						/* Note: jQuery strips the pixel unit from its returned values; we re-add it here to conform with computePropertyValue's behavior. */
 						if (position === "fixed" || (position === "absolute" && /top|left/i.test(property))) {
-							/* Note: jQuery strips the pixel unit from its returned values; we re-add it here to conform with computePropertyValue's behavior. */
 							computedValue = $(element).position()[property] + "px"; /* GET */
 						}
 					}
@@ -3824,7 +3822,8 @@
 									elementUnitConversionData = elementUnitConversionData || calculateUnitRatios();
 
 									/* The following RegEx matches CSS properties that have their % values measured relative to the x-axis. */
-									/* Note: W3C spec mandates that all of margin and padding's properties (even top and bottom) are %-relative to the *width* of the parent element. */
+									/* Note: W3C spec mandates that all of margin and padding's properties (even top and bottom) are %-relative to the *width* of the parent element.
+									 Velocity, however, treats margin and padding's % values as being relative to their respective axis. */
 									var axis = (/margin|padding|left|right|width|text|word|letter/i.test(property) || /X$/.test(property) || property === "x") ? "x" : "y";
 
 									/* In order to avoid generating n^2 bespoke conversion functions, unit conversion is a two-step process:
