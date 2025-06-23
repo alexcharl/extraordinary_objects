@@ -17,32 +17,30 @@ const vandaApi = new VandAApi();
  * Start the API integration (backward compatible with old start() function)
  */
 export async function start() {
-  console.log("=== NEW API INTEGRATION START FUNCTION CALLED ===");
-  
   try {
-    // Load settings into state
+    // Initialize AppState
     await appState.loadSettings();
+    await appState.loadHistory(); // Load existing history from storage
     
-    // Initialize V&A API with settings from state
     const settings = appState.getStateSlice('settings');
+    
+    // Initialize API with settings
     await vandaApi.init(settings.searchTerms, settings.strictSearch);
     
-    // Get a random object
+    // Get and display a random object
     const object = await vandaApi.getRandomObject();
-    
-    // Update state with the object
     appState.setCurrentObject(object);
     appState.addToHistory(object);
     
-    // Display the object using the existing display logic
+    // Display the object
     displayObject(object);
     
-    console.log("API integration completed successfully");
-    
+    return object;
   } catch (error) {
-    console.error("API integration failed:", error);
+    console.error('Failed to start application:', error);
     appState.setApiError(error.message);
     SITE.throwError();
+    return null;
   }
 }
 

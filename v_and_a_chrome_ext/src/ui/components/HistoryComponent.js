@@ -9,9 +9,14 @@ export class HistoryComponent {
     this.$overlayCloseBtn = $('.close-overlay');
     this.$historyObjects = $('#history-objects');
     this.$historyWrapper = $('.history-wrapper .loading');
+    this.appState = null;
   }
 
   init() {
+    // Get the AppState instance from the global SITE object
+    if (window.SITE && window.SITE.getState) {
+      this.appState = window.SITE.getState();
+    }
     this.bindEvents();
   }
 
@@ -37,7 +42,16 @@ export class HistoryComponent {
 
   renderHistory() {
     this.$historyWrapper.addClass('loaded');
-    const history = window.theHistory || [];
+    
+    // Get history from AppState if available, otherwise fall back to global
+    let history = [];
+    if (this.appState) {
+      const state = this.appState.getState();
+      history = state.history?.items || [];
+    } else {
+      history = window.theHistory || [];
+    }
+    
     let count = 0;
     if (!history || history.length === 0) {
       this.$historyObjects.html('<p class="no-history">No objects viewed yet. Start exploring the V&A collection!</p>');
@@ -46,12 +60,12 @@ export class HistoryComponent {
     this.$historyObjects.empty();
     history.forEach((i) => {
       let historyObjectHTML = '';
-      historyObjectHTML += `<a class="history-object hide-until-loaded" data-object-number="${i.objectNumber}" href="${i.vaCollectionsUrl}" title="View this item in the V&amp;A archive">`;
+      historyObjectHTML += `<a class="history-object hide-until-loaded" data-object-number="${i.id || i.objectNumber}" href="${i.collectionUrl || i.vaCollectionsUrl}" title="View this item in the V&amp;A archive">`;
       historyObjectHTML += `<div class="history-object-image-holder" style="background-image: url('${i.imageUrl}');"></div>`;
       historyObjectHTML += `<img src="${i.imageUrl}" class="image-holder-for-loading" id="image-holder-${count}" >`;
       historyObjectHTML += '<div class="history-object-info">';
       historyObjectHTML += `<p><strong>${i.title}</strong>, ${i.date}</p>`;
-      historyObjectHTML += `<p>${i.artist}</p>`;
+      historyObjectHTML += `<p>${i.maker || i.artist}</p>`;
       historyObjectHTML += '</div></a>';
       this.$historyObjects.append(historyObjectHTML);
       $(`#image-holder-${count}`).on('load', function() {

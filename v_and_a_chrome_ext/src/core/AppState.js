@@ -242,6 +242,62 @@ export class AppState {
         items: newItems.slice(0, history.maxItems)
       }
     });
+    
+    // Persist to Chrome storage
+    this.saveHistory();
+  }
+
+  /**
+   * Load history from Chrome storage
+   */
+  async loadHistory() {
+    if (typeof chrome !== "undefined" && typeof chrome.storage !== "undefined") {
+      return new Promise((resolve) => {
+        chrome.storage.local.get(['objectHistory'], (result) => {
+          if (result.objectHistory && Array.isArray(result.objectHistory)) {
+            // Convert old format to new format if needed
+            const convertedHistory = result.objectHistory.map(item => ({
+              id: item.systemNumber || item.objectNumber,
+              title: item.title,
+              date: item.date,
+              maker: item.artist,
+              imageUrl: item.imageUrl,
+              collectionUrl: item.vaCollectionsUrl,
+              // Keep other fields for backward compatibility
+              ...item
+            }));
+            
+            this.updateState({
+              history: {
+                ...this.state.history,
+                items: convertedHistory.slice(0, this.state.history.maxItems)
+              }
+            });
+            
+            console.log('Loaded history from storage:', convertedHistory.length, 'items');
+          }
+          resolve();
+        });
+      });
+    }
+  }
+
+  /**
+   * Save history to Chrome storage
+   */
+  async saveHistory() {
+    if (typeof chrome !== "undefined" && typeof chrome.storage !== "undefined") {
+      const history = this.getStateSlice('history');
+      
+      return new Promise((resolve) => {
+        chrome.storage.local.set({
+          objectHistory: history.items
+        }, () => {
+          console.log('History saved to storage:', history.items.length, 'items');
+          resolve();
+        });
+      });
+    }
   }
 
   /**
