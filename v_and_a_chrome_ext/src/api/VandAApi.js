@@ -202,6 +202,12 @@ export class VandAApi extends MuseumApi {
 
     const objectInfo = data.records[0];
     
+    // Construct IIIF URL for larger image (2500px max for best quality)
+    let imageUrl = '';
+    if (objectInfo._primaryImageId) {
+      imageUrl = `https://framemark.vam.ac.uk/collections/${objectInfo._primaryImageId}/full/2500,/0/default.jpg`;
+    }
+    
     return {
       id: objectInfo.systemNumber,
       title: objectInfo._primaryTitle || 'Untitled',
@@ -215,8 +221,9 @@ export class VandAApi extends MuseumApi {
       currentLocation: objectInfo._currentLocation?.displayName || '',
       onDisplay: objectInfo._currentLocation?.onDisplay || false,
       
-      // Image data
+      // Image data - use high-quality IIIF URL instead of thumbnail
       imageId: objectInfo._primaryImageId,
+      imageUrl: imageUrl, // New field for the actual image URL
       thumbnailUrl: objectInfo._images?._primary_thumbnail || '',
       imageBaseUrl: objectInfo._images?._iiif_image_base_url || '',
       manifestUrl: objectInfo._images?._iiif_presentation_url || '',

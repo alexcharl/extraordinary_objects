@@ -138,7 +138,7 @@ function displayObject(object) {
     objectType: theObject,
     accessionNumber: theMuseumNumber,
     currentLocation: theMuseumLocation,
-    thumbnailUrl: imgUrl,
+    imageUrl: imgUrl,
     collectionUrl: objectUrl,
     raw: objectInfo // Original V&A data for backward compatibility
   } = object;
