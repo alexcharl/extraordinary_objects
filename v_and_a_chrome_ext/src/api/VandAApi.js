@@ -101,22 +101,22 @@ export class VandAApi extends MuseumApi {
    * Search for objects in V&A collection
    */
   async searchObjects(searchTerm, options = {}) {
-    if (!this.canSearch()) {
-      throw new Error('Maximum search attempts reached');
-    }
-
-    this.incrementSearchCount();
-    
     const params = new URLSearchParams({
       q: searchTerm || this.getRandomSearchTerm(),
       page_size: options.limit || '1',
-      page: '1'
+      page: options.page || '1',
+      random: options.random ? '1' : undefined,
+      images_exist: options.imagesExist ? '1' : undefined
     });
-
+    // Remove undefined params
+    for (const [key, value] of params.entries()) {
+      if (value === undefined) params.delete(key);
+    }
     const url = `${this.config.baseUrl}${this.config.searchEndpoint}?${params}`;
-    
+    console.log('[V&A API] searchObjects URL:', url);
     try {
       const data = await this.makeRequest(url);
+      console.log('[V&A API] record_count:', data.info?.record_count);
       return this.normalizeSearchResults(data);
     } catch (error) {
       console.error('V&A search failed:', error);
@@ -125,37 +125,26 @@ export class VandAApi extends MuseumApi {
   }
 
   /**
-   * Get a random object from V&A collection
+   * Get a truly random object from V&A collection using random=1 and images_exist=1
    */
   async getRandomObject(searchTerm = null, options = {}) {
     try {
-      // First, search to get total count
-      const searchResults = await this.searchObjects(searchTerm, { limit: '1' });
-      
-      if (!searchResults.totalCount || searchResults.totalCount === 0) {
-        throw new Error('No objects found for search term');
-      }
-
-      // Get random offset
-      const randomOffset = randomNum(0, searchResults.totalCount - 1);
-      
-      // Search with random offset
+      // Use random=1 and images_exist=1 to get a random object with an image
       const randomResults = await this.searchObjects(searchTerm, {
         ...options,
         limit: '1',
-        offset: randomOffset
+        page: 1,
+        random: true,
+        imagesExist: true
       });
-
-      if (randomResults.objects.length === 0) {
-        throw new Error('No object found at random offset');
+      if (!randomResults.objects.length) {
+        throw new Error('No random object found');
       }
-
       // Get the specific object
       const objectId = randomResults.objects[0].id;
       return await this.getObject(objectId, options);
-      
     } catch (error) {
-      console.error('Failed to get random object:', error);
+      console.error('Failed to get truly random object:', error);
       throw error;
     }
   }
@@ -164,6 +153,9 @@ export class VandAApi extends MuseumApi {
    * Get a specific object by system number
    */
   async getObject(systemNumber, options = {}) {
+    // The V&A API's system number is unique, so we expect only one result.
+    // However, we still specify page_size: '1' and page: '1' to ensure we get the first (and only) result.
+    // This does not limit the scope, since system numbers are unique and only one object should match.
     const params = new URLSearchParams({
       kw_system_number: systemNumber,
       page_size: '1',
