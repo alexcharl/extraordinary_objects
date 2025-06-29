@@ -103,11 +103,10 @@ export function makeVaRequest(systemNumber, searchTerm, offset, limit, withImage
       expectResponse = 2;
     }
     
+    let searchItem = null;
     if (strictSearch == true) {
-      const searchItem = searchTerm;
+      searchItem = searchTerm;
       searchTerm = null;
-    } else {
-      const searchItem = null;
     }
     
     console.log("strictSearch = " + strictSearch);
@@ -122,7 +121,7 @@ export function makeVaRequest(systemNumber, searchTerm, offset, limit, withImage
         action: 'makeVaRequest',
         params: {
           systemNumber: systemNumber,
-          searchTerm: searchTerm,
+          searchTerm: searchTerm || searchItem,
           offset: offset,
           limit: limit,
           withImages: withImages,
