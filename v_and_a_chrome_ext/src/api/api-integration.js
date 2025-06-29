@@ -61,17 +61,12 @@ export async function makeVaRequest(systemNumber, searchTerm, offset, limit, wit
     
     if (systemNumber) {
       // Get specific object
-      object = await vandaApi.getObject(systemNumber, {
-        withImages: withImages || '1',
-        withDescription: withDescription || '1'
-      });
+      object = await vandaApi.getObject(systemNumber);
     } else {
       // Get random object with search term
       object = await vandaApi.getRandomObject(searchTerm, {
         limit: limit || '1',
-        offset: offset,
-        withImages: withImages || '1',
-        withDescription: withDescription || '1'
+        offset: offset
       });
     }
     

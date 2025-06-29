@@ -38,9 +38,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       queryParams.set('kw_system_number', systemNumber);
     }
     
+    // Use correct V&A API parameter name for images
     if (hasImage) {
-      queryParams.set('has_image', hasImage);
+      queryParams.set('images_exist', hasImage);
     }
+    
+    // Add image quality restriction for better images
+    queryParams.set('image_restrict', '2'); // 2500px images
     
     // Add random parameter if specified
     if (random && random !== "0") {

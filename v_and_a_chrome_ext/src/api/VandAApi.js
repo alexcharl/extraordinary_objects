@@ -61,9 +61,7 @@ export class VandAApi extends MuseumApi {
     const searchTerm = params.q || null;
     const offset = params.page ? (parseInt(params.page) - 1) * parseInt(params.page_size || '1') : null;
     const limit = params.page_size || '1';
-    const withImages = '1';
-    const withDescription = '1';
-    const hasImage = '1';
+    const hasImage = '1'; // Always request objects with images
     
     return new Promise((resolve, reject) => {
       if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) {
@@ -75,8 +73,6 @@ export class VandAApi extends MuseumApi {
             searchTerm: searchTerm,
             offset: offset,
             limit: limit,
-            withImages: withImages,
-            withDescription: withDescription,
             hasImage: hasImage
           }
         }, function(response) {
@@ -106,8 +102,18 @@ export class VandAApi extends MuseumApi {
       page_size: options.limit || '1',
       page: options.page || '1',
       random: options.random ? '1' : undefined,
-      images_exist: options.imagesExist ? '1' : undefined
+      images_exist: options.imagesExist ? '1' : undefined,
+      image_restrict: '2' // Always request 2500px images for better quality
     });
+    
+    // Handle offset parameter (convert to page number)
+    if (options.offset !== undefined && options.offset !== null) {
+      const pageSize = parseInt(options.limit || '1');
+      const page = Math.floor(options.offset / pageSize) + 1;
+      params.set('page', page.toString());
+      console.log(`[V&A API] Converting offset ${options.offset} to page ${page} (page_size: ${pageSize})`);
+    }
+    
     // Remove undefined params
     for (const [key, value] of params.entries()) {
       if (value === undefined) params.delete(key);
@@ -125,26 +131,43 @@ export class VandAApi extends MuseumApi {
   }
 
   /**
-   * Get a truly random object from V&A collection using random=1 and images_exist=1
+   * Get a truly random object from V&A collection using random=1
    */
   async getRandomObject(searchTerm = null, options = {}) {
     try {
-      // Use random=1 and images_exist=1 to get a random object with an image
+      // Pick random search term if none provided
+      if (!searchTerm) {
+        searchTerm = this.getRandomSearchTerm();
+      }
+      
+      console.log(`[V&A API] Getting random object for search term: "${searchTerm}"`);
+      
+      // Use V&A's built-in randomization with the search term
       const randomResults = await this.searchObjects(searchTerm, {
-        ...options,
         limit: '1',
         page: 1,
-        random: true,
+        random: true,  // This will randomize across the entire search term's collection
         imagesExist: true
       });
+      
       if (!randomResults.objects.length) {
         throw new Error('No random object found');
       }
-      // Get the specific object
+      
+      // Get the specific object details
       const objectId = randomResults.objects[0].id;
       return await this.getObject(objectId, options);
+      
     } catch (error) {
       console.error('Failed to get truly random object:', error);
+      
+      // Fallback: try with a different search term
+      if (searchTerm) {
+        console.log('Retrying with different search term...');
+        const newSearchTerm = this.getRandomSearchTerm();
+        return await this.getRandomObject(newSearchTerm, options);
+      }
+      
       throw error;
     }
   }
