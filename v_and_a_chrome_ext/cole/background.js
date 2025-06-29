@@ -7,7 +7,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('Background script received message:', request);
   
   if (request.action === 'makeVaRequest') {
-    const { systemNumber, searchTerm, offset, limit, withImages, withDescription, after, random, hasImage } = request.params;
+    const { systemNumber, searchTerm, offset, limit, withImages, withDescription, after, hasImage } = request.params;
     
     console.log('Making V&A API request with params:', request.params);
     
@@ -22,58 +22,37 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       // Ensure page number is valid (minimum 1, maximum 1000 to prevent 500 errors)
       page = Math.max(1, Math.min(calculatedPage, 1000)).toString();
       
-      console.log(`Offset: ${offset}, Page size: ${pageSize}, Calculated page: ${calculatedPage}, Final page: ${page}`);
+      console.log(`Using calculated page ${page} for offset ${offset} with page size ${pageSize}`);
     }
     
-    const queryParams = new URLSearchParams({
+    const params = new URLSearchParams({
       page_size: pageSize,
-      page: page
+      page: page,
+      images_exist: hasImage || '1',
+      image_restrict: '2' // Request 2500px images for better quality
     });
     
-    if (searchTerm) {
-      queryParams.set('q', searchTerm);
-    }
-    
+    // Add search term or system number
     if (systemNumber) {
-      queryParams.set('kw_system_number', systemNumber);
+      params.set('kw_system_number', systemNumber);
+      console.log('Using V&A API system number lookup');
+    } else if (searchTerm) {
+      params.set('q', searchTerm);
+      console.log('Using V&A API search with term:', searchTerm);
     }
     
-    // Use correct V&A API parameter name for images
-    if (hasImage) {
-      queryParams.set('images_exist', hasImage);
-    }
-    
-    // Add image quality restriction for better images
-    queryParams.set('image_restrict', '2'); // 2500px images
-    
-    // Add random parameter if specified
-    if (random && random !== "0") {
-      queryParams.set('random', random);
-      console.log('Using V&A API random ordering');
-    }
-    
-    const url = `https://api.vam.ac.uk/v2/objects/search?${queryParams.toString()}`;
-    console.log('API URL:', url);
+    const url = `https://api.vam.ac.uk/v2/objects/search?${params}`;
+    console.log('V&A API URL:', url);
     
     fetch(url)
       .then(response => {
-        console.log('API response status:', response.status);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         return response.json();
       })
       .then(data => {
-        console.log('API response data received');
-        console.log('Response info:', data.info);
-        console.log('Total pages available:', data.info.pages);
-        console.log('Requested page:', page);
-        console.log('Number of records returned:', data.records ? data.records.length : 0);
-        if (data.records && data.records.length > 0) {
-          console.log('First record system number:', data.records[0].systemNumber);
-        } else {
-          console.log('No records returned - this might indicate a pagination issue');
-        }
+        console.log('V&A API response received');
         sendResponse({ success: true, data: data });
       })
       .catch(error => {

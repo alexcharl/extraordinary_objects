@@ -101,7 +101,6 @@ export class VandAApi extends MuseumApi {
       q: searchTerm || this.getRandomSearchTerm(),
       page_size: options.limit || '1',
       page: options.page || '1',
-      random: options.random ? '1' : undefined,
       images_exist: options.imagesExist ? '1' : undefined,
       image_restrict: '2' // Always request 2500px images for better quality
     });
@@ -131,7 +130,7 @@ export class VandAApi extends MuseumApi {
   }
 
   /**
-   * Get a truly random object from V&A collection using random=1
+   * Get a truly random object from V&A collection using random offset
    */
   async getRandomObject(searchTerm = null, options = {}) {
     try {
@@ -142,19 +141,36 @@ export class VandAApi extends MuseumApi {
       
       console.log(`[V&A API] Getting random object for search term: "${searchTerm}"`);
       
-      // Use V&A's built-in randomization with the search term
-      const randomResults = await this.searchObjects(searchTerm, {
+      // Step 1: Get total count for this search term (without random parameter)
+      const initialSearch = await this.searchObjects(searchTerm, {
         limit: '1',
         page: 1,
-        random: true,  // This will randomize across the entire search term's collection
+        imagesExist: true
+      });
+      
+      const totalCount = initialSearch.totalCount;
+      console.log(`[V&A API] Total objects for "${searchTerm}": ${totalCount}`);
+      
+      if (totalCount === 0) {
+        throw new Error(`No objects found for search term: ${searchTerm}`);
+      }
+      
+      // Step 2: Generate random offset (same as old implementation)
+      const randomOffset = Math.floor(Math.random() * totalCount);
+      console.log(`[V&A API] Random offset: ${randomOffset} (range: 0 to ${totalCount - 1})`);
+      
+      // Step 3: Get object at random offset
+      const randomResults = await this.searchObjects(searchTerm, {
+        limit: '1',
+        offset: randomOffset,
         imagesExist: true
       });
       
       if (!randomResults.objects.length) {
-        throw new Error('No random object found');
+        throw new Error('No random object found at calculated offset');
       }
       
-      // Get the specific object details
+      // Step 4: Get the specific object details
       const objectId = randomResults.objects[0].id;
       return await this.getObject(objectId, options);
       
