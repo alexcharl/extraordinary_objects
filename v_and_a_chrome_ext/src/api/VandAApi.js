@@ -170,9 +170,14 @@ export class VandAApi extends MuseumApi {
         throw new Error('No random object found at calculated offset');
       }
       
-      // Step 4: Get the specific object details
+      // Step 4: Get the specific object details and add search term
       const objectId = randomResults.objects[0].id;
-      return await this.getObject(objectId, options);
+      const object = await this.getObject(objectId, options);
+      
+      // Add the search term to the object data
+      object.searchTerm = searchTerm;
+      
+      return object;
       
     } catch (error) {
       console.error('Failed to get truly random object:', error);
@@ -239,18 +244,142 @@ export class VandAApi extends MuseumApi {
       imageUrl = `https://framemark.vam.ac.uk/collections/${objectInfo._primaryImageId}/full/2500,/0/default.jpg`;
     }
     
+    // Handle artist dates if available
+    let datesAlive = "";
+    if (objectInfo._primaryMaker && objectInfo._primaryMaker.birthYear) {
+      const birthYear = objectInfo._primaryMaker.birthYear;
+      const deathYear = objectInfo._primaryMaker.deathYear;
+      if (birthYear && deathYear) {
+        datesAlive = "(" + birthYear + " - " + deathYear + ")";
+      } else if (birthYear) {
+        datesAlive = "(Born " + birthYear + ")";
+      }
+    }
+    
+    // Extract materials and techniques from raw data if available
+    let materials = "";
+    if (objectInfo._materials && objectInfo._materials.length > 0) {
+      materials = objectInfo._materials.map(m => m.name).join(", ");
+    }
+    
+    // Extract techniques from raw data if available
+    let techniques = "";
+    if (objectInfo._techniques && objectInfo._techniques.length > 0) {
+      techniques = objectInfo._techniques.map(t => t.name).join(", ");
+    }
+    
+    // Extract subjects from raw data if available
+    let subjects = "";
+    if (objectInfo._subjects && objectInfo._subjects.length > 0) {
+      subjects = objectInfo._subjects.map(s => s.name).join(", ");
+    }
+    
+    // Extract physical description from raw data if available
+    let physicalDescription = "";
+    if (objectInfo._physicalDescription) {
+      physicalDescription = objectInfo._physicalDescription;
+    }
+    
+    // Extract dimensions from raw data if available
+    let dimensions = "";
+    if (objectInfo._dimensions) {
+      dimensions = objectInfo._dimensions;
+    }
+    
+    // Extract accession year if available
+    let accessionYear = "";
+    if (objectInfo.accessionYear) {
+      accessionYear = objectInfo.accessionYear;
+    } else if (objectInfo.accessionNumber) {
+      // Try to extract year from accession number (format: LETTER.YEAR-NUMBER)
+      const match = objectInfo.accessionNumber.match(/(\d{4})/);
+      if (match) {
+        accessionYear = match[1];
+      }
+    }
+    
+    // Extract additional historical context from date information
+    let historicalContext = "";
+    if (objectInfo._primaryDate) {
+      const date = objectInfo._primaryDate;
+      // Add historical period context based on date
+      if (date.includes("19th century") || (date.match(/\d{4}/) && parseInt(date.match(/\d{4}/)[0]) < 1900)) {
+        historicalContext = "Victorian era";
+      } else if (date.includes("18th century") || (date.match(/\d{4}/) && parseInt(date.match(/\d{4}/)[0]) < 1800)) {
+        historicalContext = "Georgian era";
+      } else if (date.includes("17th century") || (date.match(/\d{4}/) && parseInt(date.match(/\d{4}/)[0]) < 1700)) {
+        historicalContext = "Stuart era";
+      } else if (date.includes("16th century") || (date.match(/\d{4}/) && parseInt(date.match(/\d{4}/)[0]) < 1600)) {
+        historicalContext = "Tudor era";
+      } else if (date.includes("20th century") || (date.match(/\d{4}/) && parseInt(date.match(/\d{4}/)[0]) >= 1900 && parseInt(date.match(/\d{4}/)[0]) < 2000)) {
+        historicalContext = "Modern era";
+      } else if (date.includes("21st century") || (date.match(/\d{4}/) && parseInt(date.match(/\d{4}/)[0]) >= 2000)) {
+        historicalContext = "Contemporary era";
+      }
+    }
+    
+    // Build a rich description from multiple sources
+    let richDescription = "";
+    const descriptionParts = [];
+    
+    // Start with primary description if available
+    if (objectInfo._primaryDescription && objectInfo._primaryDescription.trim() !== "") {
+      descriptionParts.push(objectInfo._primaryDescription);
+    }
+    
+    // Add physical description if different from primary
+    if (physicalDescription && physicalDescription.trim() !== "" && 
+        physicalDescription !== objectInfo._primaryDescription) {
+      descriptionParts.push(physicalDescription);
+    }
+    
+    // Add subjects if available
+    if (subjects && subjects.trim() !== "") {
+      descriptionParts.push(`Depicts: ${subjects}`);
+    }
+    
+    // Add techniques if available
+    if (techniques && techniques.trim() !== "") {
+      descriptionParts.push(`Made using: ${techniques}`);
+    }
+    
+    // Add historical context if available
+    if (historicalContext && historicalContext.trim() !== "") {
+      descriptionParts.push(`Historical period: ${historicalContext}`);
+    }
+    
+    // Add accession year for historical context
+    if (accessionYear && accessionYear.trim() !== "") {
+      descriptionParts.push(`Acquired by the V&A in ${accessionYear}`);
+    }
+    
+    // Combine all description parts
+    if (descriptionParts.length > 0) {
+      richDescription = descriptionParts.join(". ");
+    }
+    
     return {
       id: objectInfo.systemNumber,
       title: objectInfo._primaryTitle || 'Untitled',
-      description: objectInfo._primaryDescription || '',
+      description: richDescription || objectInfo._primaryDescription || '',
       date: objectInfo._primaryDate || '',
       maker: objectInfo._primaryMaker?.name || '',
       makerAssociation: objectInfo._primaryMaker?.association || '',
+      datesAlive: datesAlive, // Add artist dates
       place: objectInfo._primaryPlace || '',
       objectType: objectInfo.objectType || '',
       accessionNumber: objectInfo.accessionNumber || '',
       currentLocation: objectInfo._currentLocation?.displayName || '',
       onDisplay: objectInfo._currentLocation?.onDisplay || false,
+      
+      // Technical details
+      materials: materials, // Add materials and techniques
+      techniques: techniques, // Add techniques
+      subjects: subjects, // Add subjects
+      physicalDescription: physicalDescription, // Add physical description
+      dimensions: dimensions, // Add dimensions
+      accessionYear: accessionYear, // Add accession year
+      historicalContext: historicalContext, // Add historical context
       
       // Image data - use high-quality IIIF URL instead of thumbnail
       imageId: objectInfo._primaryImageId,

@@ -127,10 +127,19 @@ function displayObject(object) {
     date: theDate,
     maker: theArtist,
     makerAssociation: theArtistAssociation,
+    datesAlive: datesAlive,
     place: thePlace,
     objectType: theObject,
     accessionNumber: theMuseumNumber,
     currentLocation: theMuseumLocation,
+    materials: theMaterials,
+    techniques: theTechniques,
+    subjects: theSubjects,
+    physicalDescription: thePhysicalDescription,
+    dimensions: theDimensions,
+    accessionYear: theAccessionYear,
+    historicalContext: theHistoricalContext,
+    searchTerm: theSearchTerm,
     imageUrl: imgUrl,
     collectionUrl: objectUrl,
     raw: objectInfo // Original V&A data for backward compatibility
@@ -144,7 +153,6 @@ function displayObject(object) {
   cleanTitle = cleanTitle.replace(/\<\\b\>/g, "");
   
   // Handle artist information
-  const datesAlive = theArtistAssociation || "";
   const theSideCaption = "<strong>" + cleanTitle + " " + theDate + "</strong>" + " &mdash; " + theArtist + " " + datesAlive;
   
   // Create description if not provided
@@ -232,9 +240,11 @@ function displayObject(object) {
   console.log("UI Updates - Setting image to:", imgUrl);
   
   // Add fallback logic for missing description
-  const descriptionContent = finalDescription && finalDescription.trim() !== "" 
-    ? finalDescription 
-    : "No description available for this object.";
+  let descriptionContent = theDescription && theDescription.trim() !== "" 
+    ? theDescription 
+    : (thePhysicalDescription && thePhysicalDescription.trim() !== "" 
+        ? thePhysicalDescription 
+        : [cleanTitle, theDate, thePlace, theArtist].filter(Boolean).join(", ") + ".");
   $("#object-description").html("<p>" + descriptionContent + "</p>");
   
   $("#object-side-caption").html(theSideCaption);
@@ -273,6 +283,86 @@ function displayObject(object) {
   } else {
     $("#museum-number").hide();
     $("#museum-number").prev("h4").hide();
+  }
+  
+  // Handle search term
+  if (theSearchTerm != "") {
+    $("#search-term").text(theSearchTerm);
+  } else {
+    $("#search-term").hide();
+    $("#search-term").prev("h4").hide();
+  }
+  
+  // Handle physical description
+  if (thePhysicalDescription != "") {
+    $("#physical-description").html(thePhysicalDescription);
+  } else {
+    $("#physical-description").hide();
+    $("#physical-description").prev("h4").hide();
+  }
+  
+  // Handle materials and techniques
+  if (theMaterials != "") {
+    $("#tech-info-materials").html(theMaterials);
+  } else {
+    $("#tech-info-materials").hide();
+    $("#tech-info-materials").prev("h4").hide();
+  }
+  
+  // Handle techniques
+  if (theTechniques != "") {
+    // Add techniques section if it doesn't exist
+    if ($("#tech-info-techniques").length === 0) {
+      $("#tech-info-materials").after('<h4>Techniques</h4><p id="tech-info-techniques"></p>');
+    }
+    $("#tech-info-techniques").html(theTechniques);
+  } else {
+    $("#tech-info-techniques").hide();
+    $("#tech-info-techniques").prev("h4").hide();
+  }
+  
+  // Handle subjects
+  if (theSubjects != "") {
+    // Add subjects section if it doesn't exist
+    if ($("#tech-info-subjects").length === 0) {
+      $("#tech-info-techniques").after('<h4>Subjects</h4><p id="tech-info-subjects"></p>');
+    }
+    $("#tech-info-subjects").html(theSubjects);
+  } else {
+    $("#tech-info-subjects").hide();
+    $("#tech-info-subjects").prev("h4").hide();
+  }
+  
+  // Handle accession year
+  if (theAccessionYear != "") {
+    // Add accession year section if it doesn't exist
+    if ($("#tech-info-accession-year").length === 0) {
+      $("#tech-info-subjects").after('<h4>Acquired</h4><p id="tech-info-accession-year"></p>');
+    }
+    $("#tech-info-accession-year").text(theAccessionYear);
+  } else {
+    $("#tech-info-accession-year").hide();
+    $("#tech-info-accession-year").prev("h4").hide();
+  }
+  
+  // Handle historical context
+  if (theHistoricalContext != "") {
+    // Add historical context section if it doesn't exist
+    if ($("#tech-info-historical-context").length === 0) {
+      $("#tech-info-accession-year").after('<h4>Historical Period</h4><p id="tech-info-historical-context"></p>');
+    }
+    $("#tech-info-historical-context").text(theHistoricalContext);
+  } else {
+    $("#tech-info-historical-context").hide();
+    $("#tech-info-historical-context").prev("h4").hide();
+  }
+  
+  // Handle dimensions
+  if (theDimensions != "") {
+    $("#dimensions").text(theDimensions);
+  } else {
+    $("#dimensions").hide();
+    $("#dimensions").prev("h4").hide();
   }
   
   // Trigger resize and show content
