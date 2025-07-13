@@ -99,8 +99,6 @@ export async function makeVaRequest(systemNumber, searchTerm, offset, limit, wit
  * This is now handled internally by the new API, but kept for compatibility
  */
 export function processResponse(data, expectResponse) {
-  console.log("processResponse called with data:", data);
-  
   // Convert the new normalized object format to the old format for display
   if (data && data.id) {
     // This is a normalized object from the new API
@@ -117,8 +115,6 @@ export function processResponse(data, expectResponse) {
  * This maintains compatibility with the current display system
  */
 function displayObject(object) {
-  console.log("Displaying object:", object);
-  
   // Extract data from normalized object
   const {
     id: theSystemNumber,
@@ -234,10 +230,6 @@ function displayObject(object) {
   }
   
   $("#page-link").attr("href", objectUrl);
-  
-  console.log("UI Updates - Setting title to:", cleanTitle);
-  console.log("UI Updates - Setting artist to:", theArtist);
-  console.log("UI Updates - Setting image to:", imgUrl);
   
   // Add fallback logic for missing description
   let descriptionContent = theDescription && theDescription.trim() !== "" 
@@ -375,7 +367,6 @@ function displayObject(object) {
       $(".image-hide-until-loaded, .hide-after-loaded").addClass("loaded");
       $(this).removeClass("image-error");
     }).on('error', function() {
-      console.log("Image failed to load:", imgUrl);
       const $imageContainer = $(this).closest('.object-image-wrapper');
       $imageContainer.html('<div class="image-placeholder"><p>Image not available</p><p><small>This object may not have been photographed yet, or the image may be temporarily unavailable.</small></p></div>');
       $(".image-hide-until-loaded, .hide-after-loaded").addClass("loaded");
@@ -383,9 +374,6 @@ function displayObject(object) {
   } else {
     $(".image-hide-until-loaded, .hide-after-loaded").addClass("loaded");
   }
-  
-  // Save to history (handled by state management)
-  console.log("Object displayed and saved to history");
 }
 
 /**

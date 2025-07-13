@@ -18,8 +18,6 @@ window.SITE = window.SITE || {};
  * Initialize the application
  */
 function init() {
-  console.log('=== V&A Chrome Extension Initializing ===');
-  
   // Initialize global variables first
   initGlobal();
   
@@ -28,8 +26,6 @@ function init() {
   
   // Start the new API integration
   start();
-  
-  console.log('=== V&A Chrome Extension Initialized ===');
 }
 
 // Initialize when DOM is ready

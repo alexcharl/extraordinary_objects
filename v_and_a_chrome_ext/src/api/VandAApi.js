@@ -65,7 +65,6 @@ export class VandAApi extends MuseumApi {
     
     return new Promise((resolve, reject) => {
       if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) {
-        console.log("Sending message to background script...");
         chrome.runtime.sendMessage({
           action: 'makeVaRequest',
           params: {
@@ -76,18 +75,14 @@ export class VandAApi extends MuseumApi {
             hasImage: hasImage
           }
         }, function(response) {
-          console.log("Received response from background script:", response);
           if (response && response.success) {
-            console.log("API request successful");
             resolve(response.data);
           } else {
-            console.log("API request failed:", response ? response.error : "No response");
             reject(new Error(response ? response.error : "No response from background script"));
           }
         });
       } else {
         // Fallback for standalone testing (won't work due to CORS)
-        console.log("Running as standalone page - API requests will fail due to CORS");
         reject(new Error("Chrome extension context not available"));
       }
     });
@@ -110,7 +105,6 @@ export class VandAApi extends MuseumApi {
       const pageSize = parseInt(options.limit || '1');
       const page = Math.floor(options.offset / pageSize) + 1;
       params.set('page', page.toString());
-      console.log(`[V&A API] Converting offset ${options.offset} to page ${page} (page_size: ${pageSize})`);
     }
     
     // Remove undefined params
@@ -118,13 +112,10 @@ export class VandAApi extends MuseumApi {
       if (value === undefined) params.delete(key);
     }
     const url = `${this.config.baseUrl}${this.config.searchEndpoint}?${params}`;
-    console.log('[V&A API] searchObjects URL:', url);
     try {
       const data = await this.makeRequest(url);
-      console.log('[V&A API] record_count:', data.info?.record_count);
       return this.normalizeSearchResults(data);
     } catch (error) {
-      console.error('V&A search failed:', error);
       throw error;
     }
   }
@@ -139,8 +130,6 @@ export class VandAApi extends MuseumApi {
         searchTerm = this.getRandomSearchTerm();
       }
       
-      console.log(`[V&A API] Getting random object for search term: "${searchTerm}"`);
-      
       // Step 1: Get total count for this search term (without random parameter)
       const initialSearch = await this.searchObjects(searchTerm, {
         limit: '1',
@@ -149,7 +138,6 @@ export class VandAApi extends MuseumApi {
       });
       
       const totalCount = initialSearch.totalCount;
-      console.log(`[V&A API] Total objects for "${searchTerm}": ${totalCount}`);
       
       if (totalCount === 0) {
         throw new Error(`No objects found for search term: ${searchTerm}`);
@@ -157,7 +145,6 @@ export class VandAApi extends MuseumApi {
       
       // Step 2: Generate random offset (same as old implementation)
       const randomOffset = Math.floor(Math.random() * totalCount);
-      console.log(`[V&A API] Random offset: ${randomOffset} (range: 0 to ${totalCount - 1})`);
       
       // Step 3: Get object at random offset
       const randomResults = await this.searchObjects(searchTerm, {
@@ -180,15 +167,6 @@ export class VandAApi extends MuseumApi {
       return object;
       
     } catch (error) {
-      console.error('Failed to get truly random object:', error);
-      
-      // Fallback: try with a different search term
-      if (searchTerm) {
-        console.log('Retrying with different search term...');
-        const newSearchTerm = this.getRandomSearchTerm();
-        return await this.getRandomObject(newSearchTerm, options);
-      }
-      
       throw error;
     }
   }
@@ -212,7 +190,6 @@ export class VandAApi extends MuseumApi {
       const data = await this.makeRequest(url);
       return this.normalizeObjectData(data);
     } catch (error) {
-      console.error('Failed to get object:', error);
       throw error;
     }
   }
@@ -414,8 +391,6 @@ export class VandAApi extends MuseumApi {
    * Legacy method for backward compatibility
    */
   async start() {
-    console.log("=== V&A API START FUNCTION CALLED ===");
-    
     // Load user settings
     if (typeof chrome !== "undefined" && typeof chrome.storage !== "undefined") {
       return new Promise((resolve) => {
@@ -441,7 +416,6 @@ export class VandAApi extends MuseumApi {
             this.displayObject(object);
             resolve(object);
           } catch (error) {
-            console.error('Failed to get random object:', error);
             SITE.throwError();
             resolve(null);
           }
@@ -455,7 +429,6 @@ export class VandAApi extends MuseumApi {
         this.displayObject(object);
         return object;
       } catch (error) {
-        console.error('Failed to get random object:', error);
         SITE.throwError();
         return null;
       }

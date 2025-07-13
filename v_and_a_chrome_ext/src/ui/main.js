@@ -93,7 +93,6 @@ export function initMain() {
       if (result.objectHistory) {
         theHistory = result.objectHistory;
         window.theHistory = theHistory; // Update global reference
-        console.log('Loaded history from storage:', theHistory.length, 'items');
       }
     });
   }
@@ -125,8 +124,6 @@ export function initMain() {
 
   onThrottledScroll();
   $textContent.on('scroll', throttledScroll);
-
-  console.log('initMain');
 }
 
 /**

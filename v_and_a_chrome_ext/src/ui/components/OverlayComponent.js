@@ -17,7 +17,6 @@ export class OverlayComponent {
     this.defineVars();
     this.bindEvents();
     this.isInitialized = true;
-    console.log('OverlayComponent initialized');
   }
 
   /**
@@ -93,7 +92,6 @@ export class OverlayComponent {
       this.$overlayCloseBtn.off('click');
       this.$overlay.off('click');
       this.isInitialized = false;
-      console.log('OverlayComponent destroyed');
     }
   }
 } 

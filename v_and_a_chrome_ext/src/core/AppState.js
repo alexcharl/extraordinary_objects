@@ -274,9 +274,8 @@ export class AppState {
               }
             });
             
-            console.log('Loaded history from storage:', convertedHistory.length, 'items');
+            resolve();
           }
-          resolve();
         });
       });
     }
@@ -293,7 +292,6 @@ export class AppState {
         chrome.storage.local.set({
           objectHistory: history.items
         }, () => {
-          console.log('History saved to storage:', history.items.length, 'items');
           resolve();
         });
       });

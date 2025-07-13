@@ -20,7 +20,6 @@ export class ObjectDisplayComponent {
     this.defineVars();
     this.bindEvents();
     this.isInitialized = true;
-    console.log('ObjectDisplayComponent initialized');
   }
 
   /**
@@ -100,7 +99,6 @@ export class ObjectDisplayComponent {
       this.$textContent.off('scroll', this.throttledScroll.bind(this));
       this.$downArrow.off('click');
       this.isInitialized = false;
-      console.log('ObjectDisplayComponent destroyed');
     }
   }
 } 
