@@ -1,6 +1,6 @@
 {
   "name": "v-and-a-chrome-extension",
-  "version": "0.9.2",
+  "version": "1.0.0",
   "private": false,
   "description": "Chrome extension for exploring V&A Museum collections",
   "scripts": {
