@@ -1,4 +1,4 @@
-# V&A Chrome Extension
+# Cole - V&A Chrome Extension
 
 A Chrome extension that showcases extraordinary objects from the Victoria and Albert Museum's collection. Built with modern JavaScript, featuring a modular architecture, state management, and comprehensive error handling.
 
@@ -10,24 +10,26 @@ A Chrome extension that showcases extraordinary objects from the Victoria and Al
 - **Responsive Design**: Works beautifully on all screen sizes
 - **Offline Support**: Graceful handling of network issues
 - **Error Recovery**: Automatic retry and user-friendly error messages
+- **Search Customization**: Customize search terms to discover specific types of objects
 
 ## 🏗️ Architecture
 
-This extension has been refactored with a modern, maintainable architecture:
+This extension has been built with a modern, maintainable architecture:
 
 ### **Build System**
-- **Webpack** for modern bundling and development
+- **Webpack 5** for modern bundling and development
 - **Sass** for maintainable CSS with modern syntax
 - **Babel** for JavaScript transpilation
+- **Production optimization** with console log removal and minification
 
 ### **State Management**
-- **Centralized State**: All application state managed in one place
-- **Action-Based Updates**: Predictable state changes through actions
+- **Centralized State**: All application state managed in `AppState.js`
+- **Promise-based Operations**: Async state operations with proper error handling
 - **Persistence**: State automatically saved to Chrome storage
 - **Reactive Components**: UI automatically updates when state changes
 
 ### **Component System**
-- **Modular Components**: Reusable, self-contained UI components
+- **Modular Components**: Reusable, self-contained UI components in `src/ui/components/`
 - **Lifecycle Management**: Proper initialization and cleanup
 - **Event Handling**: Centralized event management
 - **State Integration**: Components connect to state management
@@ -52,7 +54,11 @@ This extension has been refactored with a modern, maintainable architecture:
 
 ### Setup
 1. Clone the repository
-2. Install dependencies:
+2. Navigate to the extension directory:
+   ```bash
+   cd v_and_a_chrome_ext
+   ```
+3. Install dependencies:
    ```bash
    npm install
    ```
@@ -71,95 +77,20 @@ npm run build:plugins
 
 ## 🔧 Configuration
 
+### Extension Settings
+
+The extension can be configured through the Chrome extension options page:
+- **Search Terms**: Customize what types of objects to discover
+- **Strict Search**: Enable/disable strict matching of search terms
+- **History Management**: Clear viewing history
+
 ### Error Handling Integration
 
-To integrate the error handling system into your extension:
-
-1. **Initialize the Error Handler** in your main entry point:
-   ```javascript
-   // In your main script (e.g., 2_main_refactored.js)
-   window.errorHandler = new ErrorHandler({
-       enableLogging: true,
-       enableNotifications: true,
-       maxRetries: 3,
-       retryDelay: 1000
-   });
-   
-   // Initialize after DOM is ready
-   window.errorHandler.init();
-   ```
-
-2. **Use Error Handling in API Calls**:
-   ```javascript
-   // In your API code (e.g., 3_va_api_refactored.js)
-   try {
-       const data = await museumApi.search(searchParams);
-       await processResponse(data, expectResponse);
-   } catch (error) {
-       window.errorHandler.handleError({
-           type: 'api',
-           error: error,
-           message: 'Failed to fetch object data',
-           context: {
-               operationId: 'search_objects',
-               searchParams: searchParams,
-               retryFunction: () => makeVaRequest(systemNumber, searchTerm, offset, limit, withImages, withDescription, after, random)
-           },
-           retryable: true
-       });
-   }
-   ```
-
-3. **Handle Component Errors**:
-   ```javascript
-   // In your component code
-   try {
-       this.updateDisplay(objectData);
-   } catch (error) {
-       window.errorHandler.handleError({
-           type: 'component',
-           error: error,
-           message: 'Failed to update object display',
-           context: {
-               componentName: 'ObjectDisplayComponent',
-               objectData: objectData
-           }
-       });
-   }
-   ```
-
-4. **Handle State Errors**:
-   ```javascript
-   // In your state management code
-   try {
-       this.setState(partialState);
-   } catch (error) {
-       window.errorHandler.handleError({
-           type: 'state',
-           error: error,
-           message: 'Failed to update application state',
-           context: {
-               partialState: partialState
-           }
-       });
-   }
-   ```
-
-### Error Types Supported
-
-- **API Errors**: Network timeouts, server errors, rate limiting
-- **Network Errors**: Offline detection, connection issues
-- **State Errors**: State corruption, storage issues
-- **Component Errors**: UI rendering failures, event handling errors
-- **Generic Errors**: Unexpected errors with fallback handling
-
-### Error Recovery Features
-
-- **Automatic Retry**: Retryable errors automatically retried with exponential backoff
-- **User Notifications**: Clear, actionable error messages shown to users
-- **State Recovery**: Automatic state restoration from Chrome storage
-- **Component Reinitialization**: Failed components automatically reinitialized
-- **Offline Support**: Graceful handling when network is unavailable
+The extension includes comprehensive error handling that automatically:
+- **Retries failed API calls** with exponential backoff
+- **Shows user-friendly error messages** when appropriate
+- **Recovers from state corruption** by restoring from Chrome storage
+- **Handles offline scenarios** gracefully
 
 ## 🎯 Usage
 
@@ -167,16 +98,24 @@ To integrate the error handling system into your extension:
 
 1. Open Chrome and go to `chrome://extensions/`
 2. Enable "Developer mode" in the top right
-3. Click "Load unpacked" and select the `cole` folder
+3. Click "Load unpacked" and select the `cole` folder from the built extension
 4. The extension should now appear in your extensions list
 
 ### Using the Extension
 
-1. Click the extension icon in your Chrome toolbar
-2. The extension will automatically fetch and display a random object from the V&A collection
-3. Use the history button to view previously seen objects
-4. Share objects on social media using the provided buttons
-5. Access detailed information about each object
+1. **New Tab Experience**: The extension replaces your new tab page with V&A objects
+2. **Object Discovery**: Each new tab shows a random object from the V&A collection
+3. **History**: Click the history icon to view previously seen objects
+4. **Sharing**: Use Pinterest and Twitter buttons to share objects
+5. **Details**: Click the "more" icon for detailed object information and settings
+
+### Extension Features
+
+- **Automatic Loading**: Objects load automatically when you open a new tab
+- **Responsive Design**: Works on desktop, tablet, and mobile
+- **Social Integration**: Share objects directly to social media
+- **Search Customization**: Modify search terms to discover specific object types
+- **History Tracking**: Keep track of your favorite discoveries
 
 ## 🏛️ API Integration
 
@@ -222,34 +161,71 @@ This extension:
 
 ```
 v_and_a_chrome_ext/
-├── assets/
-│   ├── scripts/
-│   │   ├── components/          # UI components
-│   │   │   ├── state/              # State management
-│   │   │   ├── error/              # Error handling
-│   │   │   └── *.js               # Core scripts
-│   │   ├── sass/                   # Stylesheets
-│   │   └── plugins/                # External libraries
-│   ├── cole/                       # Built extension
-│   ├── webpack.config.js          # Build configuration
-│   └── package.json               # Dependencies
+├── src/
+│   ├── api/                    # API integration layer
+│   │   ├── api-integration.js     # Main API integration
+│   │   ├── MuseumApi.js          # Museum API abstraction
+│   │   ├── SmithsonianApi.js     # Smithsonian API implementation
+│   │   └── VandAApi.js           # V&A API implementation
+│   ├── core/                   # Core application logic
+│   │   ├── AppState.js           # State management
+│   │   └── global.js             # Global utilities
+│   ├── plugins/                 # External libraries
+│   │   ├── 1_doTimeout_throttle_debounce.js
+│   │   ├── 2_imagesloaded.js
+│   │   ├── 3_velocity.js
+│   │   └── index.js
+│   ├── styles/                  # Sass stylesheets
+│   │   ├── common/              # Shared styles
+│   │   ├── pages/               # Page-specific styles
+│   │   └── main.scss            # Main stylesheet
+│   ├── ui/                      # UI components
+│   │   ├── components/          # Reusable components
+│   │   │   ├── HistoryComponent.js
+│   │   │   ├── ObjectDisplayComponent.js
+│   │   │   ├── OverlayComponent.js
+│   │   │   └── SidePanelComponent.js
+│   │   └── main.js              # UI initialization
+│   ├── utils/                   # Utility functions
+│   │   └── helpers.js
+│   ├── main.js                  # Main entry point (renamed to scripts-entry.js)
+│   └── options/                 # Extension options page
+│       ├── index.html
+│       └── options.js
+├── cole/                        # Built extension
+│   ├── src/override/            # New tab override page
+│   ├── jquery/                  # jQuery library (v3.7.1)
+│   ├── js/                      # Built JavaScript files
+│   ├── css/                     # Built CSS files
+│   ├── icons/                   # Extension icons
+│   └── manifest.json            # Extension manifest
+├── webpack.config.js            # Build configuration
+├── package.json                 # Dependencies and scripts
+└── README.md                    # This file
 ```
 
 ### Key Files
 
-- **`2_main_refactored.js`**: Main application entry point
-- **`3_va_api_refactored.js`**: V&A API integration
-- **`museumApi.js`**: API abstraction layer
-- **`ErrorHandler.js`**: Error handling system
-- **`AppState.js`**: State management
-- **`ComponentManager.js`**: Component orchestration
+- **`src/scripts-entry.js`**: Main application entry point
+- **`src/api/api-integration.js`**: API integration orchestration
+- **`src/api/VandAApi.js`**: V&A API implementation
+- **`src/core/AppState.js`**: State management
+- **`src/ui/components/`**: UI components
+- **`webpack.config.js`**: Build configuration
+
+### Technology Stack
+
+- **jQuery 3.7.1**: DOM manipulation and AJAX
+- **Webpack 5**: Module bundling and build system
+- **Sass**: CSS preprocessing
+- **Chrome Extension APIs**: Storage, tabs, and extension management
 
 ### Adding New Features
 
-1. **New Components**: Extend `BaseComponent` and register in `ComponentManager`
-2. **New State**: Add to `AppState` and create corresponding actions
-3. **New APIs**: Implement new museum API in the abstraction layer
-4. **Error Handling**: Use `ErrorHandler.handleError()` for all error cases
+1. **New Components**: Add to `src/ui/components/` and register in UI initialization
+2. **New State**: Add to `AppState.js` and create corresponding methods
+3. **New APIs**: Implement new museum API in `src/api/`
+4. **Error Handling**: Use try-catch blocks and proper error logging
 
 ## 🚀 Chrome Web Store Preparation
 
@@ -262,6 +238,8 @@ v_and_a_chrome_ext/
 - ✅ **Data Handling**: No sensitive data collection
 - ✅ **Error Handling**: Comprehensive error handling implemented
 - ✅ **Testing**: Extension tested for crashes and bugs
+- ✅ **jQuery 3.7.1**: Updated to latest stable jQuery version
+- ✅ **Production Build**: Console logs removed from production builds
 
 ### Required Files
 
@@ -299,17 +277,19 @@ For issues or questions:
 
 ## 🔄 Changelog
 
-### Latest Version
+### Latest Version (Current)
+- **jQuery 3.7.1**: Upgraded from jQuery 2.x to latest stable version
+- **Production Optimization**: Console logs removed from production builds
+- **CSP Compliance**: Fixed Content Security Policy issues
+- **Promise Resolution**: Fixed state management Promise handling
+- **File Structure**: Cleaned up and organized project structure
+
+### Previous Versions
 - **Error Handling & Resilience**: Comprehensive error handling system
 - **State Management**: Centralized state management with persistence
 - **Component System**: Modular, reusable UI components
 - **API Abstraction**: Extensible museum API support
 - **Modern Build System**: Webpack-based build with Sass
-
-### Previous Versions
-- **Build System Modernization**: Replaced Grunt with Webpack
-- **Sass Modernization**: Updated to modern Sass syntax
-- **Initial Refactoring**: Broke down monolithic JavaScript
 
 ---
 
