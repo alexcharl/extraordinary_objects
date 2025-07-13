@@ -8,14 +8,8 @@ window.SITE = window.SITE || {};
 
 // Global variables
 let $window = null;
-let $body = null;
 let WIDTH = null;
 let HEIGHT = null;
-let isMobile = null;
-let isTablet = null;
-let isDevice = null;
-let isTouch = null;
-let browser;
 let $wrapper;
 
 // UI element references
@@ -23,13 +17,6 @@ let $textContent;
 let $objectCaption;
 let $downArrow;
 let $objectHeader;
-let $sidePanel;
-let $sidePanelOpenBtn;
-let $sidePanelCloseBtn;
-let $historyOpenBtn;
-let $overlayCloseBtn;
-let $overlay;
-let $techInfo;
 
 // HISTORY
 let theHistory = [];
@@ -55,30 +42,15 @@ let overlayComponent;
 function defineVars() {
   const gv = window.gv;
   $window = gv.$window;
-  $body = gv.$body;
   WIDTH = gv.WIDTH;
   HEIGHT = gv.HEIGHT;
   $wrapper = gv.$wrapper;
-
-  isMobile = gv.deviceVariables.isMobile;
-  isTablet = gv.deviceVariables.isTablet;
-  isDevice = gv.deviceVariables.isDevice;
-  isTouch = gv.deviceVariables.isTouch;
-
-  browser = gv.browser;
 
   // SPECIFIC TO HERE
   $textContent = $('.text-content-column');
   $objectCaption = $('.object-caption');
   $downArrow = $('.down-arrow');
   $objectHeader = $('.object-header');
-  $sidePanel = $('.side-panel');
-  $sidePanelOpenBtn = $('.more');
-  $sidePanelCloseBtn = $('.close-side-panel');
-  $historyOpenBtn = $('.history');
-  $overlayCloseBtn = $('.close-overlay');
-  $overlay = $('.overlay');
-  $techInfo = $('.technical-info .text-content');
 }
 
 /**
@@ -202,14 +174,14 @@ function onResize() {
  * Handle throttled resize events
  */
 export function onThrottledResize() {
-  // Placeholder for resize logic
+  // Resize logic handled by components
 }
 
 /**
  * Handle debounced resize events
  */
 function onDebouncedResize() {
-  // console.log('debounce');
+  // Debounced resize logic handled by components
 }
 
 const throttledResize = $.throttle(250, function() {
