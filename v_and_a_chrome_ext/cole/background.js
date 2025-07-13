@@ -1,15 +1,9 @@
 // Background script for V&A Chrome Extension
 // Handles API requests to bypass CORS restrictions
 
-console.log('Background script loaded');
-
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log('Background script received message:', request);
-  
   if (request.action === 'makeVaRequest') {
     const { systemNumber, searchTerm, offset, limit, withImages, withDescription, after, hasImage } = request.params;
-    
-    console.log('Making V&A API request with params:', request.params);
     
     // Build query parameters for v2 API
     const pageSize = limit || '1';
@@ -21,8 +15,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       
       // Ensure page number is valid (minimum 1, maximum 1000 to prevent 500 errors)
       page = Math.max(1, Math.min(calculatedPage, 1000)).toString();
-      
-      console.log(`Using calculated page ${page} for offset ${offset} with page size ${pageSize}`);
     }
     
     const params = new URLSearchParams({
@@ -35,14 +27,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Add search term or system number
     if (systemNumber) {
       params.set('kw_system_number', systemNumber);
-      console.log('Using V&A API system number lookup');
     } else if (searchTerm) {
       params.set('q', searchTerm);
-      console.log('Using V&A API search with term:', searchTerm);
     }
     
     const url = `https://api.vam.ac.uk/v2/objects/search?${params}`;
-    console.log('V&A API URL:', url);
     
     fetch(url)
       .then(response => {
@@ -52,10 +41,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return response.json();
       })
       .then(data => {
-        console.log('V&A API response received');
         sendResponse({ success: true, data: data });
       })
       .catch(error => {
+        // Keep essential error logging for debugging
         console.error('V&A API request failed:', error);
         sendResponse({ success: false, error: error.message });
       });
@@ -65,17 +54,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   
   // Handle test message
   if (request.action === 'test') {
-    console.log('Test message received');
     sendResponse({ success: true, message: 'Background script is working' });
     return true;
   }
-});
-
-// Log when the service worker starts
-self.addEventListener('install', (event) => {
-  console.log('Background script installed');
-});
-
-self.addEventListener('activate', (event) => {
-  console.log('Background script activated');
 });

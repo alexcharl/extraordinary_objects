@@ -2,8 +2,6 @@
 function save_options() {
   var userSearchTerms = document.getElementById('searchTerms').value;
   var strictSearch = document.getElementById('strictSearch').checked == true ? document.getElementById('strictSearch').value : 'fuzzy';
-  console.log("userSearchTerms = "+userSearchTerms);
-  console.log("strictSearch = "+strictSearch);
   chrome.storage.sync.set({
     userSearchTerms: userSearchTerms,
     strictSearch: strictSearch

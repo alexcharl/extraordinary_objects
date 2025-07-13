@@ -64,7 +64,8 @@ module.exports = (env, argv) => {
         new TerserPlugin({
           terserOptions: {
             compress: {
-              // drop_console: false // Keep console.log for debugging
+              drop_console: true,
+              drop_debugger: true
             },
             mangle: true,
             format: {
