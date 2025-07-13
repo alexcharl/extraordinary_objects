@@ -273,11 +273,14 @@ export class AppState {
                 items: convertedHistory.slice(0, this.state.history.maxItems)
               }
             });
-            
-            resolve();
           }
+          // Always resolve, even if no history found
+          resolve();
         });
       });
+    } else {
+      // If chrome storage is not available, resolve immediately
+      return Promise.resolve();
     }
   }
 

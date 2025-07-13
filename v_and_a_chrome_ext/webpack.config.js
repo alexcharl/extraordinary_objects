@@ -9,7 +9,7 @@ module.exports = (env, argv) => {
     entry: {
       // Main scripts - using new module structure
       'scripts': [
-        './src/main.js'
+        './src/scripts-entry.js'
       ],
       // Plugins - now using new location
       'plugins': './src/plugins/index.js',
@@ -64,8 +64,8 @@ module.exports = (env, argv) => {
         new TerserPlugin({
           terserOptions: {
             compress: {
-              drop_console: true,
-              drop_debugger: true
+              drop_console: false,
+              drop_debugger: false
             },
             mangle: true,
             format: {

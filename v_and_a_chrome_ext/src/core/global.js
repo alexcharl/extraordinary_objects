@@ -12,23 +12,34 @@ window.SITE = window.SITE || {};
  * Initialize global variables
  */
 export function initGlobal() {
-  const gv = window.gv = {
-    $window: $(window),
-    $document: $(document),
-    $html: $('html'),
-    $body: $('body'),
-    WIDTH: $(window).width(),
-    HEIGHT: $(window).height(),
-    deviceVariables: defineDeviceVariables(),
-    browser: browserDetection(),
-    
-    // site specific
-    $wrapper: $('#wrapper')
-  };
-
-  console.log('initGlobal');
+  console.log('initGlobal: Starting...');
   
-  return gv;
+  try {
+    console.log('initGlobal: Creating jQuery objects...');
+    const gv = window.gv = {
+      $window: $(window),
+      $document: $(document),
+      $html: $('html'),
+      $body: $('body'),
+      WIDTH: $(window).width(),
+      HEIGHT: $(window).height(),
+    };
+    
+    console.log('initGlobal: Getting device variables...');
+    gv.deviceVariables = defineDeviceVariables();
+    
+    console.log('initGlobal: Getting browser detection...');
+    gv.browser = browserDetection();
+    
+    console.log('initGlobal: Getting wrapper...');
+    gv.$wrapper = $('#wrapper');
+    
+    console.log('initGlobal: Complete');
+    return gv;
+  } catch (error) {
+    console.error('initGlobal: Error occurred:', error);
+    throw error;
+  }
 }
 
 // Export to global SITE object for backward compatibility

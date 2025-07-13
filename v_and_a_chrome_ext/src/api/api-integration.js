@@ -18,26 +18,41 @@ const vandaApi = new VandAApi();
  */
 export async function start() {
   try {
+    console.log('start: Starting API integration...');
+    
     // Initialize AppState
+    console.log('start: Loading settings...');
     await appState.loadSettings();
+    console.log('start: Settings loaded');
+    
+    console.log('start: Loading history...');
     await appState.loadHistory(); // Load existing history from storage
+    console.log('start: History loaded');
     
     const settings = appState.getStateSlice('settings');
+    console.log('start: Settings:', settings);
     
     // Initialize API with settings
+    console.log('start: Initializing V&A API...');
     await vandaApi.init(settings.searchTerms, settings.strictSearch);
+    console.log('start: V&A API initialized');
     
     // Get and display a random object
+    console.log('start: Getting random object...');
     const object = await vandaApi.getRandomObject();
+    console.log('start: Got object:', object);
+    
     appState.setCurrentObject(object);
     appState.addToHistory(object);
     
     // Display the object
+    console.log('start: Displaying object...');
     displayObject(object);
+    console.log('start: Object displayed');
     
     return object;
   } catch (error) {
-    console.error('Failed to start application:', error);
+    console.error('start: Failed to start application:', error);
     appState.setApiError(error.message);
     SITE.throwError();
     return null;
